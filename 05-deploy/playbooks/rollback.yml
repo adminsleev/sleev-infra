@@ -1,0 +1,53 @@
+---
+# 05-deploy/playbooks/rollback.yml
+# Usage (via Justfile):
+#   just rollback-prod prod-abc1234
+#
+# Required extra-vars: env, image_tag (the previous known-good tag)
+# Secrets loaded from: 90-secrets/{{ env }}.enc.yaml (decrypted on localhost by SOPS)
+#
+# Migrations are intentionally DISABLED on rollback to avoid destructive schema
+# changes. Ensure the database schema is compatible with the rollback image before
+# running, or restore the database separately using db-restore.yml.
+
+- name: "Rollback sleev app — {{ env | upper }}"
+  hosts: all
+  remote_user: deploy
+  become: false
+  gather_facts: false
+
+  pre_tasks:
+    - name: Validate required extra-vars are present
+      ansible.builtin.assert:
+        that:
+          - env is defined and env in ['dev', 'prod']
+          - image_tag is defined and image_tag | length > 0
+        fail_msg: >-
+          Both `env` (dev|prod) and `image_tag` must be supplied as --extra-vars.
+          Example: ansible-playbook rollback.yml -e env=prod -e image_tag=prod-abc1234
+
+    - name: Load SOPS-encrypted secrets for {{ env }}
+      community.sops.load_vars:
+        file: "{{ playbook_dir }}/../../90-secrets/{{ env }}.enc.yaml"
+        expressions: evaluate-on-load
+      delegate_to: localhost
+      run_once: true
+      no_log: true
+
+    - name: Print rollback warning
+      ansible.builtin.debug:
+        msg: >-
+          [ROLLBACK] Rolling back {{ env | upper }} to image tag {{ image_tag }}.
+          Migrations are DISABLED. Verify DB schema compatibility manually.
+
+  roles:
+    - role: app
+      vars:
+        # Image
+        ghcr_image: "ghcr.io/{{ ghcr_owner }}/sleev"
+        # App layout
+        app_dir: "/opt/app/{{ env }}"
+        app_port: "{{ '3000' if env == 'prod' else '3001' }}"
+        # KEY DIFFERENCE: migrations disabled for rollback
+        run_migrations: false
+        # Secrets sourced from SOPS (loaded in pre_tasks above)
