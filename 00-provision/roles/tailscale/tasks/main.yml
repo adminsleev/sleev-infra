@@ -1,20 +1,19 @@
 ---
-- name: Install curl (required for Tailscale repo setup)
-  ansible.builtin.apt:
-    name: curl
-    state: present
-    update_cache: true
+- name: Assert tailscale_auth_key is provided
+  ansible.builtin.assert:
+    that: tailscale_auth_key is defined and tailscale_auth_key | length > 0
+    fail_msg: "tailscale_auth_key must be provided as an extra variable (from SOPS-decrypted secrets)"
 
 - name: Download Tailscale GPG key
   ansible.builtin.get_url:
-    url: https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg
+    url: https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_distribution_release }}.noarmor.gpg
     dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
     mode: '0644'
     force: false
 
 - name: Add Tailscale apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu noble main"
+    repo: "deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu {{ ansible_distribution_release }} main"
     state: present
     filename: tailscale
 
@@ -31,17 +30,27 @@
     state: started
 
 - name: Check if already connected to tailnet
-  ansible.builtin.command: tailscale status
-  register: tailscale_status
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status_raw
   changed_when: false
   failed_when: false
+
+- name: Set tailscale_connected fact
+  ansible.builtin.set_fact:
+    tailscale_connected: "{{ (tailscale_status_raw.stdout | from_json).BackendState == 'Running' }}"
+  when: tailscale_status_raw.rc == 0 and tailscale_status_raw.stdout != ''
+
+- name: Set tailscale_connected to false if status unavailable
+  ansible.builtin.set_fact:
+    tailscale_connected: false
+  when: tailscale_status_raw.rc != 0 or tailscale_status_raw.stdout == ''
 
 - name: Connect to Tailscale tailnet
   ansible.builtin.command: >
     tailscale up
     --authkey={{ tailscale_auth_key }}
-    --hostname=sleev-vps
+    --hostname={{ tailscale_hostname }}
     --accept-routes
-  when: "'100.' not in tailscale_status.stdout"
+  when: not tailscale_connected
   changed_when: true
   no_log: true
