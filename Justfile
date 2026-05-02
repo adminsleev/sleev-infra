@@ -108,3 +108,95 @@ gen-age-key:
 # Install Ansible Galaxy collections
 deps:
     ansible-galaxy collection install -r 00-provision/requirements.yml
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Deploy targets
+# Usage:
+#   just deploy-dev dev-abc1234
+#   just deploy-prod prod-abc1234
+# The image_tag must match a tag pushed to GHCR by the CI pipeline.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Deploy to DEV environment
+deploy-dev tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    ansible-playbook \
+        -i 00-provision/inventories/dev/hosts.yml \
+        05-deploy/playbooks/deploy.yml \
+        -e env=dev \
+        -e image_tag={{ tag }}
+
+# Deploy to PROD environment
+deploy-prod tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    ansible-playbook \
+        -i 00-provision/inventories/prod/hosts.yml \
+        05-deploy/playbooks/deploy.yml \
+        -e env=prod \
+        -e image_tag={{ tag }}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Rollback targets
+# Usage:
+#   just rollback-prod prod-abc1234
+# Rolls back to the specified image tag WITHOUT running migrations.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Rollback PROD to a previous image tag (migrations disabled)
+rollback-prod tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    ansible-playbook \
+        -i 00-provision/inventories/prod/hosts.yml \
+        05-deploy/playbooks/rollback.yml \
+        -e env=prod \
+        -e image_tag={{ tag }}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Maintenance targets
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Backup DEV database to R2
+db-backup-dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ansible-playbook \
+        -i 00-provision/inventories/dev/hosts.yml \
+        10-maintenance/playbooks/db-backup.yml \
+        -e env=dev
+
+# Backup PROD database to R2
+db-backup-prod:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ansible-playbook \
+        -i 00-provision/inventories/prod/hosts.yml \
+        10-maintenance/playbooks/db-backup.yml \
+        -e env=prod
+
+# Restore PROD database from a dump file on the VPS
+# Usage: just db-restore-prod /opt/backups/db/prod_2026-05-01.dump
+db-restore-prod dump:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "WARNING: This will DESTROY all data in app_prod and restore from {{ dump }}"
+    echo "Press Ctrl-C within 5 seconds to abort..."
+    sleep 5
+    ansible-playbook \
+        -i 00-provision/inventories/prod/hosts.yml \
+        10-maintenance/playbooks/db-restore.yml \
+        -e env=prod \
+        -e dump_file={{ dump }}
+
+# Renew SSL certificates via certbot --nginx on the VPS
+ssl-renew:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ansible-playbook \
+        -i 00-provision/inventories/prod/hosts.yml \
+        10-maintenance/playbooks/ssl-renew.yml
