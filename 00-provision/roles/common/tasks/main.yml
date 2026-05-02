@@ -20,6 +20,7 @@
     name:
       - curl
       - git
+      - jq
       - ufw
       - fail2ban
       - htop
@@ -106,11 +107,37 @@
     - "{{ common_backup_base_dir }}/prod"
     - "{{ common_backup_base_dir }}/prod/db"
 
+- name: Set system timezone
+  community.general.timezone:
+    name: "{{ common_system_timezone }}"
+
+- name: Tune kernel parameters
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+  loop:
+    - { name: vm.swappiness, value: "1" }
+    - { name: vm.dirty_background_ratio, value: "5" }
+    - { name: vm.dirty_ratio, value: "10" }
+    - { name: net.core.somaxconn, value: "65535" }
+    - { name: net.ipv4.tcp_max_syn_backlog, value: "65535" }
+
 - name: Disable password authentication in sshd
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "^#?PasswordAuthentication"
     line: "PasswordAuthentication no"
+    state: present
+  notify: Restart sshd
+
+- name: Prohibit root login with password in sshd
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin prohibit-password"
     state: present
   notify: Restart sshd
 

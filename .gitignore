@@ -8,6 +8,7 @@
 # Ansible
 *.retry
 provision/.tmp_vars_*.yml
+.ansible_facts_cache/
 # bootstrap group_vars holds real IPs at run-time — never commit
 00-provision/inventories/bootstrap/group_vars/all.yml
 
