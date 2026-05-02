@@ -1,0 +1,10 @@
+# secrets (never commit decrypted files)
+secrets/*.dec.yaml
+/tmp/
+
+# Ansible
+*.retry
+provision/.tmp_vars_*.yml
+
+# OS
+.DS_Store
