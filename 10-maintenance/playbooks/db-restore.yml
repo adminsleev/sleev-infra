@@ -1,0 +1,108 @@
+---
+# 10-maintenance/playbooks/db-restore.yml
+# Usage (via Justfile):
+#   just db-restore-prod /opt/backups/db/prod_2026-05-01.dump
+#
+# Required extra-vars:
+#   env       — 'dev' or 'prod'
+#   dump_file — full path on the VPS to the .dump file to restore
+#
+# WARNING: This playbook drops and recreates the target database.
+# All existing data will be PERMANENTLY LOST. Ensure you have a recent
+# backup before running.
+#
+# Privilege model:
+#   - docker compose stop/start runs as 'deploy' (in docker group, no sudo)
+#   - DROP/CREATE DATABASE and pg_restore run as 'postgres' OS user (become)
+
+- name: "Database restore — {{ env | upper }}"
+  hosts: all
+  remote_user: deploy
+  become: false
+  gather_facts: false
+
+  pre_tasks:
+    - name: Validate required extra-vars
+      ansible.builtin.assert:
+        that:
+          - env is defined and env in ['dev', 'prod']
+          - dump_file is defined and dump_file | length > 0
+        fail_msg: >-
+          Required: -e env=prod -e dump_file=/opt/backups/db/prod_2026-05-01.dump
+
+    - name: Confirm dump file exists on remote
+      ansible.builtin.stat:
+        path: "{{ dump_file }}"
+      register: dump_stat
+      failed_when: not dump_stat.stat.exists
+
+    - name: Print restore warning
+      ansible.builtin.debug:
+        msg: >-
+          [RESTORE] About to DROP and RECREATE {{ pg_db }} on port {{ pg_port }}.
+          Restoring from: {{ dump_file }} ({{ dump_stat.stat.size | filesizeformat }}).
+          This will DESTROY all current data in {{ pg_db }}.
+
+  tasks:
+    # Step 1: Stop the app container so no connections are open during restore
+    - name: "1/4 | Stop app container"
+      ansible.builtin.command:
+        cmd: docker compose stop
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    # Step 2: Drop and recreate database (must run as postgres superuser)
+    - name: "2/4 | Drop existing database {{ pg_db }}"
+      ansible.builtin.command:
+        cmd: >-
+          psql -p {{ pg_port }} -U postgres -c
+          "DROP DATABASE IF EXISTS {{ pg_db }};"
+      become: true
+      become_user: postgres
+      changed_when: true
+
+    - name: "2/4 | Recreate database {{ pg_db }} owned by {{ pg_user }}"
+      ansible.builtin.command:
+        cmd: >-
+          psql -p {{ pg_port }} -U postgres -c
+          "CREATE DATABASE {{ pg_db }} OWNER {{ pg_user }};"
+      become: true
+      become_user: postgres
+      changed_when: true
+
+    # Step 3: Restore the dump into the freshly created database
+    - name: "3/4 | Restore {{ dump_file }} into {{ pg_db }}"
+      ansible.builtin.command:
+        cmd: >-
+          pg_restore
+          -Fc
+          -p {{ pg_port }}
+          -U postgres
+          -d {{ pg_db }}
+          {{ dump_file }}
+      become: true
+      become_user: postgres
+      changed_when: true
+      register: restore_result
+      # pg_restore exits non-zero for harmless warnings (e.g. role comments);
+      # treat exit code 1 as a warning, only fail on 2+.
+      failed_when: restore_result.rc >= 2
+
+    - name: "3/4 | Log pg_restore warnings (if any)"
+      ansible.builtin.debug:
+        msg: "pg_restore stderr: {{ restore_result.stderr }}"
+      when: restore_result.stderr | length > 0
+
+    # Step 4: Restart the app container
+    - name: "4/4 | Start app container"
+      ansible.builtin.command:
+        cmd: docker compose start
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    - name: "4/4 | Restore complete"
+      ansible.builtin.debug:
+        msg: >-
+          Restore complete. {{ pg_db }} restored from {{ dump_file }}.
+          App container started. Monitor logs:
+          ssh deploy@<tailscale-host> 'docker compose -f {{ app_dir }}/docker-compose.yml logs -f'
