@@ -1,0 +1,11 @@
+---
+# Full provisioning playbook. Connects via Tailscale as root.
+# Run after bootstrap. Idempotent — safe to re-run.
+- name: Provision Sleev VPS
+  hosts: all
+  become: true
+  roles:
+    - common
+    - docker
+    - postgresql
+    - nginx
