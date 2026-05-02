@@ -1,0 +1,113 @@
+---
+# 10-maintenance/playbooks/db-backup.yml
+# Usage (via Justfile):
+#   just db-backup-dev
+#   just db-backup-prod
+#
+# Required extra-vars: env
+# Group vars supply: pg_port, pg_db, backup_dir
+#
+# Privilege model:
+#   - pg_dump runs as 'postgres' OS user (needs become + become_user: postgres)
+#   - rclone runs as root (rclone config at /root/.config/rclone/rclone.conf)
+#   - file cleanup runs as root (can see all files under backup_dir)
+
+- name: "Database backup — {{ env | upper }}"
+  hosts: all
+  remote_user: deploy
+  become: false
+  gather_facts: true
+
+  vars:
+    backup_retention_days: "{{ '7' if env == 'prod' else '3' }}"
+
+  pre_tasks:
+    - name: Validate env extra-var
+      ansible.builtin.assert:
+        that:
+          - env is defined and env in ['dev', 'prod']
+        fail_msg: "env must be 'dev' or 'prod'. Pass -e env=prod"
+
+    - name: Ensure backup directory exists
+      ansible.builtin.file:
+        path: "{{ backup_dir }}/db"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: "0750"
+      become: true
+      become_user: root
+
+    - name: Set dump filename fact
+      ansible.builtin.set_fact:
+        dump_filename: "{{ env }}_{{ ansible_date_time.date }}.dump"
+
+  tasks:
+    # Step 1: Run pg_dump as postgres OS user
+    - name: "1/4 | pg_dump {{ pg_db }} → {{ backup_dir }}/db/{{ dump_filename }}"
+      ansible.builtin.command:
+        cmd: >-
+          pg_dump
+          -Fc
+          -p {{ pg_port }}
+          -U postgres
+          {{ pg_db }}
+          -f {{ backup_dir }}/db/{{ dump_filename }}
+      become: true
+      become_user: postgres
+      changed_when: true
+      register: pg_dump_result
+
+    - name: "1/4 | Verify dump file was created and is non-empty"
+      ansible.builtin.stat:
+        path: "{{ backup_dir }}/db/{{ dump_filename }}"
+      register: dump_stat
+      failed_when: not dump_stat.stat.exists or dump_stat.stat.size == 0
+
+    # Step 2: Upload dump to Cloudflare R2 via rclone
+    - name: "2/4 | Upload {{ dump_filename }} to R2"
+      ansible.builtin.command:
+        cmd: >-
+          rclone copy
+          {{ backup_dir }}/db/{{ dump_filename }}
+          r2:sleev-backups/{{ env }}/
+      become: true
+      become_user: root
+      changed_when: true
+      register: rclone_result
+
+    - name: "2/4 | Log rclone result"
+      ansible.builtin.debug:
+        msg: "Uploaded {{ dump_filename }} to r2:sleev-backups/{{ env }}/"
+
+    # Step 3: Prune old local dumps beyond retention window
+    - name: "3/4 | Find local dumps older than {{ backup_retention_days }} days"
+      ansible.builtin.find:
+        paths: "{{ backup_dir }}/db"
+        patterns: "{{ env }}_*.dump"
+        age: "{{ backup_retention_days }}d"
+        age_stamp: mtime
+      become: true
+      become_user: root
+      register: old_dumps
+
+    - name: "3/4 | Delete old local dumps"
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      become: true
+      become_user: root
+      loop: "{{ old_dumps.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      when: old_dumps.files | length > 0
+
+    # Step 4: Summary
+    - name: "4/4 | Backup summary"
+      ansible.builtin.debug:
+        msg: >-
+          Backup complete.
+          File: {{ dump_filename }}
+          Size: {{ dump_stat.stat.size | filesizeformat }}
+          Retention: {{ backup_retention_days }} days
+          Pruned: {{ old_dumps.files | length }} old dump(s)
