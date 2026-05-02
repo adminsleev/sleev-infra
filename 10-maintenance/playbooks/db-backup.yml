@@ -12,7 +12,7 @@
 #   - rclone runs as root (rclone config at /root/.config/rclone/rclone.conf)
 #   - file cleanup runs as root (can see all files under backup_dir)
 
-- name: "Database backup — {{ env | upper }}"
+- name: "Database backup — {{ env | default('') | upper }}"
   hosts: all
   remote_user: deploy
   become: false

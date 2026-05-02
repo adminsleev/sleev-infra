@@ -7,7 +7,7 @@
 # Required extra-vars: env, image_tag
 # Secrets loaded from: 90-secrets/{{ env }}.enc.yaml (decrypted on localhost by SOPS)
 
-- name: "Deploy sleev app — {{ env | upper }}"
+- name: "Deploy sleev app — {{ env | default('') | upper }}"
   hosts: all
   remote_user: deploy
   become: false

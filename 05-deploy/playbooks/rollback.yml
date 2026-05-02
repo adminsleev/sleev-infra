@@ -10,7 +10,7 @@
 # changes. Ensure the database schema is compatible with the rollback image before
 # running, or restore the database separately using db-restore.yml.
 
-- name: "Rollback sleev app — {{ env | upper }}"
+- name: "Rollback sleev app — {{ env | default('') | upper }}"
   hosts: all
   remote_user: deploy
   become: false

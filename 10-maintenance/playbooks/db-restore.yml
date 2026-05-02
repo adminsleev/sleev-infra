@@ -15,7 +15,7 @@
 #   - docker compose stop/start runs as 'deploy' (in docker group, no sudo)
 #   - DROP/CREATE DATABASE and pg_restore run as 'postgres' OS user (become)
 
-- name: "Database restore — {{ env | upper }}"
+- name: "Database restore — {{ env | default('') | upper }}"
   hosts: all
   remote_user: deploy
   become: false

@@ -1,0 +1,12 @@
+---
+# ansible-lint configuration for sleev-infra
+# https://ansible-lint.readthedocs.io/configuring/
+
+profile: min
+
+# Provide default values for extra-vars used in play names so that
+# ansible-lint syntax-check can evaluate templates without -e env=...
+extra_vars:
+  env: prod
+  image_tag: lint-check
+  dump_file: /tmp/lint-check.dump
