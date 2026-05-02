@@ -18,7 +18,7 @@
     state: present
     filename: pgdg
 
-- name: Install PostgreSQL 18
+- name: Install PostgreSQL {{ pg_version }}
   ansible.builtin.apt:
     name: "postgresql-{{ pg_version }}"
     state: present

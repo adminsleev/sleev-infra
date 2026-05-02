@@ -3,7 +3,7 @@
 
 listen_addresses          = 'localhost'
 port                      = {{ pg_port }}
-max_connections           = 100
+max_connections           = {{ pg_max_connections }}
 shared_buffers            = {{ pg_shared_buffers }}
 
 log_destination           = 'stderr'
