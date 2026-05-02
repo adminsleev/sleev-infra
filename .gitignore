@@ -1,5 +1,8 @@
-# secrets (never commit decrypted files)
-secrets/*.dec.yaml
+# secrets — block everything, whitelist only SOPS-encrypted files and the SOPS config
+secrets/*
+!secrets/.gitkeep
+!secrets/.sops.yaml
+!secrets/*.enc.yaml
 /tmp/
 
 # Ansible
