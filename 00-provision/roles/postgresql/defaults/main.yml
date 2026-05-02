@@ -1,0 +1,7 @@
+---
+pg_version: 18 # noqa: var-naming[no-role-prefix]
+pg_prod_port: 5432 # noqa: var-naming[no-role-prefix]
+pg_dev_port: 5433 # noqa: var-naming[no-role-prefix]
+pg_prod_shared_buffers: "256MB" # noqa: var-naming[no-role-prefix]
+pg_dev_shared_buffers: "64MB" # noqa: var-naming[no-role-prefix]
+pg_max_connections: 100 # noqa: var-naming[no-role-prefix]

@@ -1,0 +1,10 @@
+---
+- name: Restart postgresql prod
+  ansible.builtin.systemd:
+    name: "postgresql@{{ pg_version }}-prod"
+    state: restarted
+
+- name: Restart postgresql dev
+  ansible.builtin.systemd:
+    name: "postgresql@{{ pg_version }}-dev"
+    state: restarted

@@ -1,0 +1,145 @@
+---
+- name: Install required Python packages for postgresql module
+  ansible.builtin.apt:
+    name:
+      - python3-psycopg2
+    state: present
+
+- name: Download PostgreSQL GPG key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: /usr/share/keyrings/postgresql.asc
+    mode: '0644'
+    force: false
+
+- name: Add PostgreSQL apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/postgresql.asc] https://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+    state: present
+    filename: pgdg
+
+- name: Install PostgreSQL 18
+  ansible.builtin.apt:
+    name: "postgresql-{{ pg_version }}"
+    state: present
+    update_cache: true
+
+- name: Stop default main cluster
+  ansible.builtin.command: pg_ctlcluster {{ pg_version }} main stop
+  failed_when: false
+  changed_when: false
+
+- name: Drop default main cluster
+  ansible.builtin.command: pg_dropcluster {{ pg_version }} main
+  args:
+    removes: /var/lib/postgresql/{{ pg_version }}/main
+  failed_when: false
+  changed_when: false
+
+- name: Create prod cluster at port {{ pg_prod_port }}
+  ansible.builtin.command: pg_createcluster {{ pg_version }} prod --port {{ pg_prod_port }}
+  args:
+    creates: /var/lib/postgresql/{{ pg_version }}/prod
+
+- name: Create dev cluster at port {{ pg_dev_port }}
+  ansible.builtin.command: pg_createcluster {{ pg_version }} dev --port {{ pg_dev_port }}
+  args:
+    creates: /var/lib/postgresql/{{ pg_version }}/dev
+
+- name: Deploy postgresql.conf for prod cluster
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: /etc/postgresql/{{ pg_version }}/prod/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  vars:
+    pg_cluster_name: prod
+    pg_port: "{{ pg_prod_port }}"
+    pg_shared_buffers: "{{ pg_prod_shared_buffers }}"
+  notify: Restart postgresql prod
+
+- name: Deploy postgresql.conf for dev cluster
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: /etc/postgresql/{{ pg_version }}/dev/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  vars:
+    pg_cluster_name: dev
+    pg_port: "{{ pg_dev_port }}"
+    pg_shared_buffers: "{{ pg_dev_shared_buffers }}"
+  notify: Restart postgresql dev
+
+- name: Deploy pg_hba.conf for prod cluster
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: /etc/postgresql/{{ pg_version }}/prod/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  notify: Restart postgresql prod
+
+- name: Deploy pg_hba.conf for dev cluster
+  ansible.builtin.template:
+    src: pg_hba.conf.j2
+    dest: /etc/postgresql/{{ pg_version }}/dev/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  notify: Restart postgresql dev
+
+- name: Enable and start prod cluster
+  ansible.builtin.systemd:
+    name: "postgresql@{{ pg_version }}-prod"
+    enabled: true
+    state: started
+
+- name: Enable and start dev cluster
+  ansible.builtin.systemd:
+    name: "postgresql@{{ pg_version }}-dev"
+    enabled: true
+    state: started
+
+- name: Create prod database user
+  community.postgresql.postgresql_user:
+    name: app_prod
+    password: "{{ prod_pg_password }}"
+    state: present
+    port: "{{ pg_prod_port }}"
+    login_user: postgres
+  become: true
+  become_user: postgres
+  no_log: true
+
+- name: Create prod database
+  community.postgresql.postgresql_db:
+    name: app_prod
+    owner: app_prod
+    state: present
+    port: "{{ pg_prod_port }}"
+    login_user: postgres
+  become: true
+  become_user: postgres
+
+- name: Create dev database user
+  community.postgresql.postgresql_user:
+    name: app_dev
+    password: "{{ dev_pg_password }}"
+    state: present
+    port: "{{ pg_dev_port }}"
+    login_user: postgres
+  become: true
+  become_user: postgres
+  no_log: true
+
+- name: Create dev database
+  community.postgresql.postgresql_db:
+    name: app_dev
+    owner: app_dev
+    state: present
+    port: "{{ pg_dev_port }}"
+    login_user: postgres
+  become: true
+  become_user: postgres
