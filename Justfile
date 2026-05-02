@@ -111,26 +111,27 @@ provision target:
 # Deploy a container image to dev or prod.
 #
 # Usage:
-#   just deploy 05-deploy/vps dev dev-abc1234 ghcr.io/sleev/sleev-website-app
-#   just deploy 05-deploy/vps prod prod-abc1234 ghcr.io/sleev/sleev-website-app
+#   just deploy 05-deploy/vps dev ghcr.io/sleev/sleev-website-app
+#   just deploy 05-deploy/vps prod ghcr.io/sleev/sleev-website-app prod-abc1234
 
-deploy target env tag image:
+deploy target env image tag='':
     #!/usr/bin/env bash
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    resolved_tag="{{ if tag == '' { env } else { tag } }}"
     ansible-playbook \
         -i inventories/{{ env }} \
         {{ target }}/playbooks/deploy.yml \
         -e env={{ env }} \
-        -e image_tag={{ tag }} \
+        -e image_tag="$resolved_tag" \
         -e ghcr_image={{ image }}
 
 # ── Rollback ─────────────────────────────────────────────────────────────────
 # Roll back to a previous image tag (migrations disabled).
 #
-# Usage: just rollback 05-deploy/vps prod prod-abc1234 ghcr.io/sleev/sleev-website-app
+# Usage: just rollback 05-deploy/vps prod ghcr.io/sleev/sleev-website-app prod-abc1234
 
-rollback target env tag image:
+rollback target env image tag:
     #!/usr/bin/env bash
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
