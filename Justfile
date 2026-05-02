@@ -1,7 +1,5 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-ghcr_image := "ghcr.io/sleev/sleev-website-app"
-
 # ── Bootstrap ────────────────────────────────────────────────────────────────
 # Two-phase VPS setup. Phase 1 via public SSH (password), Phase 2 via Tailscale.
 # Skips Phase 1 automatically if VPS is already reachable on Tailscale.
@@ -113,10 +111,10 @@ provision target:
 # Deploy a container image to dev or prod.
 #
 # Usage:
-#   just deploy 05-deploy/vps dev dev-abc1234
-#   just deploy 05-deploy/vps prod prod-abc1234
+#   just deploy 05-deploy/vps dev dev-abc1234 ghcr.io/sleev/sleev-website-app
+#   just deploy 05-deploy/vps prod prod-abc1234 ghcr.io/sleev/sleev-website-app
 
-deploy target env tag:
+deploy target env tag image:
     #!/usr/bin/env bash
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
@@ -125,14 +123,14 @@ deploy target env tag:
         {{ target }}/playbooks/deploy.yml \
         -e env={{ env }} \
         -e image_tag={{ tag }} \
-        -e ghcr_image={{ ghcr_image }}
+        -e ghcr_image={{ image }}
 
 # ── Rollback ─────────────────────────────────────────────────────────────────
 # Roll back to a previous image tag (migrations disabled).
 #
-# Usage: just rollback 05-deploy/vps prod prod-abc1234
+# Usage: just rollback 05-deploy/vps prod prod-abc1234 ghcr.io/sleev/sleev-website-app
 
-rollback target env tag:
+rollback target env tag image:
     #!/usr/bin/env bash
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
@@ -141,7 +139,7 @@ rollback target env tag:
         {{ target }}/playbooks/rollback.yml \
         -e env={{ env }} \
         -e image_tag={{ tag }} \
-        -e ghcr_image={{ ghcr_image }}
+        -e ghcr_image={{ image }}
 
 # ── Backup ───────────────────────────────────────────────────────────────────
 # Backup database to R2.
