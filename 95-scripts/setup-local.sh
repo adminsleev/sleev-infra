@@ -14,10 +14,7 @@ fi
 # sops
 if ! command -v sops &>/dev/null; then
     echo "Installing sops..."
-    SOPS_VERSION=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-    curl -fsSL "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.darwin.amd64" \
-        -o /usr/local/bin/sops
-    chmod +x /usr/local/bin/sops
+    brew install sops
 else
     echo "sops already installed: $(sops --version)"
 fi
@@ -25,14 +22,7 @@ fi
 # age
 if ! command -v age &>/dev/null; then
     echo "Installing age..."
-    AGE_VERSION=$(curl -s https://api.github.com/repos/FiloSottile/age/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-    TMP=$(mktemp -d)
-    curl -fsSL "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-darwin-amd64.tar.gz" \
-        -o "$TMP/age.tar.gz"
-    tar -xf "$TMP/age.tar.gz" -C "$TMP"
-    cp "$TMP/age/age" /usr/local/bin/age
-    cp "$TMP/age/age-keygen" /usr/local/bin/age-keygen
-    rm -rf "$TMP"
+    brew install age
 else
     echo "age already installed: $(age --version)"
 fi
@@ -64,7 +54,8 @@ fi
 echo ""
 echo "==> All tools installed. Next steps:"
 echo "    1. Run: just gen-age-key"
-echo "    2. Add the printed public key to secrets/.sops.yaml"
-echo "    3. Edit secrets/dev.enc.yaml and secrets/prod.enc.yaml with your values"
-echo "    4. Encrypt: sops --encrypt --in-place secrets/dev.enc.yaml"
-echo "    5. Encrypt: sops --encrypt --in-place secrets/prod.enc.yaml"
+echo "    2. Add the printed public key to 90-secrets/.sops.yaml"
+echo "    3. cp 90-secrets/dev.enc.yaml.tpl 90-secrets/dev.enc.yaml && edit with real values"
+echo "    4. cp 90-secrets/prod.enc.yaml.tpl 90-secrets/prod.enc.yaml && edit with real values"
+echo "    5. sops --encrypt --in-place 90-secrets/dev.enc.yaml"
+echo "    6. sops --encrypt --in-place 90-secrets/prod.enc.yaml"

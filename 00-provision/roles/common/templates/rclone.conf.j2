@@ -4,4 +4,4 @@ provider = Cloudflare
 access_key_id = {{ r2_access_key }}
 secret_access_key = {{ r2_secret }}
 endpoint = {{ r2_endpoint }}
-bucket = {{ r2_bucket }}
+# bucket is specified per-command: rclone copy /path r2:{{ r2_bucket }}/path

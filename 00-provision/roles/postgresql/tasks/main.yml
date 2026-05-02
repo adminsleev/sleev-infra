@@ -55,7 +55,7 @@
     mode: "0640"
   vars:
     pg_cluster_name: prod
-    pg_port: "{{ pg_prod_port }}"
+    pg_cluster_port: "{{ pg_prod_port }}"
     pg_shared_buffers: "{{ pg_prod_shared_buffers }}"
   notify: Restart postgresql prod
 
@@ -68,7 +68,7 @@
     mode: "0640"
   vars:
     pg_cluster_name: dev
-    pg_port: "{{ pg_dev_port }}"
+    pg_cluster_port: "{{ pg_dev_port }}"
     pg_shared_buffers: "{{ pg_dev_shared_buffers }}"
   notify: Restart postgresql dev
 

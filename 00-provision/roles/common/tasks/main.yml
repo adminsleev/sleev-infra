@@ -1,4 +1,14 @@
 ---
+- name: Assert deploy_ssh_public_key is a real key
+  ansible.builtin.assert:
+    that:
+      - deploy_ssh_public_key is defined
+      - deploy_ssh_public_key | length > 20
+      - "'AAAA...' not in deploy_ssh_public_key"
+    fail_msg: >-
+      deploy_ssh_public_key looks like a placeholder. Pass the real public key
+      via extra-vars (just bootstrap/provision reads it from ~/.ssh/sleev_deploy.pub).
+
 - name: Update apt cache and upgrade packages
   ansible.builtin.apt:
     update_cache: true

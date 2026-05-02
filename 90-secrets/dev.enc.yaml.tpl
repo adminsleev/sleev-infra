@@ -17,13 +17,13 @@ SMTP_PASS: CHANGE_ME
 DEV_HTPASSWD_USER: deploy
 DEV_HTPASSWD_PASS: CHANGE_ME
 
-# Tailscale
+# Tailscale — NOTE: provisioning reads TAILSCALE_AUTH_KEY from prod.enc.yaml, not dev.
 TAILSCALE_AUTH_KEY: CHANGE_ME
 
 # GHCR
 GHCR_TOKEN: CHANGE_ME
 
-# Certbot
+# Certbot — NOTE: provisioning reads CERTBOT_EMAIL from prod.enc.yaml, not dev.
 CERTBOT_EMAIL: CHANGE_ME
 
 # Cloudflare R2

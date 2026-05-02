@@ -1,8 +1,8 @@
 # {{ ansible_managed }}
-# Cluster: {{ pg_cluster_name }} | Port: {{ pg_port }}
+# Cluster: {{ pg_cluster_name }} | Port: {{ pg_cluster_port }}
 
 listen_addresses          = 'localhost'
-port                      = {{ pg_port }}
+port                      = {{ pg_cluster_port }}
 max_connections           = {{ pg_max_connections }}
 shared_buffers            = {{ pg_shared_buffers }}
 
