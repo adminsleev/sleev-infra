@@ -8,5 +8,6 @@ domain: sleev.org
 app_dir: /opt/app/prod
 backup_dir: /opt/backups/prod
 
-# Public key for the deploy OS user (GitHub Actions SSH key)
+# Public key for the deploy OS user (GitHub Actions SSH key).
+# Dev and prod share the same deploy keypair since they live on the same VPS.
 deploy_ssh_public_key: "ssh-ed25519 AAAA... github-actions-sleev-deploy"
