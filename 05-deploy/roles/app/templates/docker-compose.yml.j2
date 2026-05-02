@@ -1,0 +1,19 @@
+# Managed by Ansible — do not edit by hand.
+# Re-generated on every deploy run.
+services:
+  app:
+    image: "{{ ghcr_image }}:{{ image_tag }}"
+    container_name: "app_{{ env }}"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ app_port }}:3000"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app_network_{{ env }}
+
+networks:
+  app_network_{{ env }}:
+    driver: bridge

@@ -1,0 +1,8 @@
+---
+app_user: deploy
+app_group: deploy
+compose_file_mode: "0644"
+env_file_mode: "0600"
+health_check_retries: 5
+health_check_delay: 5
+container_stabilise_seconds: 10
