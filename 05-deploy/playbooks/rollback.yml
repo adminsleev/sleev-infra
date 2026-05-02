@@ -4,7 +4,7 @@
 #   just rollback-prod prod-abc1234
 #
 # Required extra-vars: env, image_tag (the previous known-good tag)
-# Secrets loaded from: 90-secrets/{{ env }}.enc.yaml (decrypted on localhost by SOPS)
+# Secrets loaded from: 90-secrets/enc.server.yaml + 90-secrets/enc.{{ env }}.yaml
 #
 # Migrations are intentionally DISABLED on rollback to avoid destructive schema
 # changes. Ensure the database schema is compatible with the rollback image before
@@ -15,6 +15,8 @@
   remote_user: deploy
   become: false
   gather_facts: false
+  vars:
+    ansible_ssh_private_key_file: "~/.ssh/sleev_github_to_vps_deploy"
 
   pre_tasks:
     - name: Validate required extra-vars are present
@@ -26,9 +28,17 @@
           Both `env` (dev|prod) and `image_tag` must be supplied as --extra-vars.
           Example: ansible-playbook rollback.yml -e env=prod -e image_tag=prod-abc1234
 
+    - name: Load server-wide SOPS secrets
+      community.sops.load_vars:
+        file: "{{ playbook_dir }}/../../90-secrets/enc.server.yaml"
+        expressions: evaluate-on-load
+      delegate_to: localhost
+      run_once: true
+      no_log: true
+
     - name: Load SOPS-encrypted secrets for {{ env }}
       community.sops.load_vars:
-        file: "{{ playbook_dir }}/../../90-secrets/{{ env }}.enc.yaml"
+        file: "{{ playbook_dir }}/../../90-secrets/enc.{{ env }}.yaml"
         expressions: evaluate-on-load
       delegate_to: localhost
       run_once: true

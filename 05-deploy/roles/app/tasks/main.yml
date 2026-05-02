@@ -4,7 +4,7 @@
 # Step 1: Authenticate to GitHub Container Registry
 - name: "1/10 | Login to GHCR"
   ansible.builtin.command:
-    cmd: "docker login ghcr.io -u {{ ghcr_owner }} -p {{ ghcr_token }}"
+    cmd: "docker login ghcr.io -u {{ ghcr_owner }} -p {{ ghcr_read_token }}"
   changed_when: false
   no_log: true
 

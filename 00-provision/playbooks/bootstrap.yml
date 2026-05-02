@@ -1,10 +1,18 @@
 ---
-# One-time playbook. Connects via public SSH as root.
-# Installs Tailscale, creates deploy user, locks down SSH to Tailscale subnet.
-# After this runs, port 22 is closed to the public internet.
-- name: Bootstrap VPS — install Tailscale and harden SSH
+# Bootstrap Phase 1 — runs ONCE via public SSH (password auth).
+# Installs Tailscale and authorizes the operator's SSH key for root,
+# so Phase 2 (harden.yml) can connect via Tailscale without a password.
+#
+# Usage (via Justfile): just bootstrap
+# Do NOT run this playbook standalone — use the Justfile target.
+- name: "Bootstrap Phase 1 — install Tailscale via public SSH"
   hosts: all
   become: true
   roles:
     - tailscale
-    - common
+  post_tasks:
+    - name: Authorize operator SSH key for root (required for Phase 2 key auth)
+      ansible.posix.authorized_key:
+        user: root
+        key: "{{ operator_ssh_public_key }}"
+        state: present

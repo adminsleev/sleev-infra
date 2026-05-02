@@ -5,13 +5,17 @@
 #   just deploy-prod prod-abc1234
 #
 # Required extra-vars: env, image_tag
-# Secrets loaded from: 90-secrets/{{ env }}.enc.yaml (decrypted on localhost by SOPS)
+# Secrets loaded from: 90-secrets/enc.server.yaml + 90-secrets/enc.{{ env }}.yaml
 
 - name: "Deploy sleev app — {{ env | default('') | upper }}"
   hosts: all
   remote_user: deploy
   become: false
   gather_facts: false
+  vars:
+    # Deploy user uses a dedicated SSH key (GitHub Actions deploy key).
+    # Overrides the root/provision key set in inventory.
+    ansible_ssh_private_key_file: "~/.ssh/sleev_github_to_vps_deploy"
 
   pre_tasks:
     - name: Validate required extra-vars are present
@@ -23,9 +27,17 @@
           Both `env` (dev|prod) and `image_tag` must be supplied as --extra-vars.
           Example: ansible-playbook deploy.yml -e env=prod -e image_tag=prod-abc1234
 
+    - name: Load server-wide SOPS secrets
+      community.sops.load_vars:
+        file: "{{ playbook_dir }}/../../90-secrets/enc.server.yaml"
+        expressions: evaluate-on-load
+      delegate_to: localhost
+      run_once: true
+      no_log: true
+
     - name: Load SOPS-encrypted secrets for {{ env }}
       community.sops.load_vars:
-        file: "{{ playbook_dir }}/../../90-secrets/{{ env }}.enc.yaml"
+        file: "{{ playbook_dir }}/../../90-secrets/enc.{{ env }}.yaml"
         expressions: evaluate-on-load
       delegate_to: localhost
       run_once: true
@@ -42,6 +54,5 @@
         # Migrations enabled by default
         run_migrations: true
         # Secrets sourced from SOPS (loaded in pre_tasks above)
-        # ghcr_token, ghcr_owner, node_env, database_url, smtp_host,
-        # smtp_port, smtp_user, smtp_pass, next_public_app_url
-        # are all available as top-level vars after load_vars.
+        # enc.server.yaml: ghcr_read_token, smtp_host, smtp_port, smtp_user, smtp_pass
+        # enc.{{ env }}.yaml: node_env, database_url, next_public_app_url

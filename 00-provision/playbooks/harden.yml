@@ -1,0 +1,20 @@
+---
+# Bootstrap Phase 2 — runs via Tailscale after bootstrap.yml completes.
+# Hardens the VPS: creates deploy user, locks SSH to Tailscale CIDR, enables UFW.
+#
+# Prerequisites:
+#   - Tailscale is running on the VPS (bootstrap.yml ran successfully)
+#   - Operator's id_ed25519.pub is in root's authorized_keys (added by bootstrap.yml)
+#
+# Usage (via Justfile): just bootstrap  (runs this automatically after Phase 1)
+# Do NOT run this playbook standalone — use the Justfile target.
+- name: "Bootstrap Phase 2 — harden VPS via Tailscale"
+  hosts: all
+  become: true
+  pre_tasks:
+    - name: Wait for Tailscale connectivity
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 120
+  roles:
+    - common

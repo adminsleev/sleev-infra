@@ -7,7 +7,7 @@
       - "'AAAA...' not in deploy_ssh_public_key"
     fail_msg: >-
       deploy_ssh_public_key looks like a placeholder. Pass the real public key
-      via extra-vars (just bootstrap/provision reads it from ~/.ssh/sleev_deploy.pub).
+      via extra-vars (just bootstrap/provision reads it from ~/.ssh/sleev_github_to_vps_deploy.pub).
 
 - name: Update apt cache and upgrade packages
   ansible.builtin.apt:
@@ -51,21 +51,6 @@
     group: root
     mode: "0600"
   no_log: true
-
-# Partial Coolify cleanup — stops the service and removes its nginx config only.
-# Docker containers, volumes, and /data/coolify are left in place.
-- name: Stop Coolify service if present
-  ansible.builtin.systemd:
-    name: coolify
-    state: stopped
-    enabled: false
-  failed_when: false
-
-- name: Remove Coolify nginx config
-  ansible.builtin.file:
-    path: /etc/nginx/sites-enabled/coolify.conf
-    state: absent
-  failed_when: false
 
 - name: Create deploy OS user
   ansible.builtin.user:

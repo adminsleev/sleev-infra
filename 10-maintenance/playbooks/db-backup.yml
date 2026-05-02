@@ -17,8 +17,8 @@
   remote_user: deploy
   become: false
   gather_facts: true
-
   vars:
+    ansible_ssh_private_key_file: "~/.ssh/sleev_github_to_vps_deploy"
     backup_retention_days: "{{ '7' if env == 'prod' else '3' }}"
 
   pre_tasks:
@@ -70,7 +70,7 @@
         cmd: >-
           rclone copy
           {{ backup_dir }}/db/{{ dump_filename }}
-          r2:sleev-backups/{{ env }}/
+          r2:sleev-vps-artifact-backups/{{ env }}/
       become: true
       become_user: root
       changed_when: true
@@ -78,7 +78,7 @@
 
     - name: "2/4 | Log rclone result"
       ansible.builtin.debug:
-        msg: "Uploaded {{ dump_filename }} to r2:sleev-backups/{{ env }}/"
+        msg: "Uploaded {{ dump_filename }} to r2:sleev-vps-artifact-backups/{{ env }}/"
 
     # Step 3: Prune old local dumps beyond retention window
     - name: "3/4 | Find local dumps older than {{ backup_retention_days }} days"

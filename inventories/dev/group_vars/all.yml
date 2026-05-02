@@ -1,5 +1,6 @@
 ---
 env: dev
+ghcr_owner: sleev
 app_port: 3001
 pg_port: 5433
 pg_db: app_dev
