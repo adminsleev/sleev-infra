@@ -1,0 +1,6 @@
+---
+common_deploy_user: deploy
+common_deploy_home: /home/deploy
+common_app_base_dir: /opt/app
+common_backup_base_dir: /opt/backups
+common_tailscale_cidr: "100.64.0.0/10"
