@@ -1,0 +1,87 @@
+---
+# Runs as the `deploy` user (no sudo). The deploy user is in the docker group.
+
+# Step 1: Authenticate to GitHub Container Registry
+- name: "1/10 | Login to GHCR"
+  ansible.builtin.command:
+    cmd: "docker login ghcr.io -u {{ ghcr_owner }} -p {{ ghcr_token }}"
+  changed_when: false
+  no_log: true
+
+# Step 2: Render docker-compose.yml from template
+- name: "2/10 | Render docker-compose.yml from template"
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ app_dir }}/docker-compose.yml"
+    owner: deploy
+    group: deploy
+    mode: "{{ compose_file_mode }}"
+
+# Step 3: Write .env file from SOPS-decrypted secrets
+- name: "3/10 | Write .env file"
+  ansible.builtin.copy:
+    dest: "{{ app_dir }}/.env"
+    owner: deploy
+    group: deploy
+    mode: "{{ env_file_mode }}"
+    content: |
+      NODE_ENV={{ node_env }}
+      DATABASE_URL={{ database_url }}
+      SMTP_HOST={{ smtp_host }}
+      SMTP_PORT={{ smtp_port }}
+      SMTP_USER={{ smtp_user }}
+      SMTP_PASS={{ smtp_pass }}
+      NEXT_PUBLIC_APP_URL={{ next_public_app_url }}
+  no_log: true
+
+# Step 4: Pull the new image from GHCR
+- name: "4/10 | Pull Docker image"
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: "{{ app_dir }}"
+  changed_when: true
+
+# Step 5: Start (or recreate) the container
+- name: "5/10 | Start container with docker compose up"
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "{{ app_dir }}"
+  changed_when: true
+
+# Step 6: Wait for the container process to stabilise
+- name: "6/10 | Wait for container to stabilise"
+  ansible.builtin.pause:
+    seconds: "{{ container_stabilise_seconds }}"
+
+# Step 7: Run Drizzle ORM migrations (skipped on rollback)
+- name: "7/10 | Run Drizzle migrations"
+  ansible.builtin.command:
+    cmd: docker compose exec -T app pnpm drizzle-kit migrate
+    chdir: "{{ app_dir }}"
+  changed_when: true
+  when: run_migrations | default(true) | bool
+
+# Step 8: Health check the application
+- name: "8/10 | Health check — GET /api/health"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ app_port }}/api/health"
+    method: GET
+    status_code: 200
+    return_content: false
+  register: health_result
+  retries: "{{ health_check_retries }}"
+  delay: "{{ health_check_delay }}"
+  until: health_result.status == 200
+
+# Step 9: Prune dangling/unused images to free disk space
+- name: "9/10 | Prune unused Docker images"
+  ansible.builtin.command:
+    cmd: docker image prune -f
+  changed_when: true
+
+# Step 10: Log deploy summary (non-secret info only)
+- name: "10/10 | Deploy complete"
+  ansible.builtin.debug:
+    msg: >-
+      Deployed {{ ghcr_image }}:{{ image_tag }} to {{ env }}
+      on port {{ app_port }}. Migrations: {{ run_migrations | default(true) }}.
