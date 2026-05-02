@@ -1,0 +1,24 @@
+# {{ ansible_managed }}
+server {
+    listen 80;
+    server_name {{ nginx_dev_domain }};
+
+    gzip on;
+    gzip_types text/html application/json text/css application/javascript;
+
+    client_max_body_size {{ nginx_client_max_body_size }};
+
+    location / {
+        auth_basic           "Sleev Dev";
+        auth_basic_user_file /etc/nginx/.htpasswd-dev;
+
+        proxy_pass         http://127.0.0.1:{{ nginx_dev_upstream_port }};
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+    }
+}

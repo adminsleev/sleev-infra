@@ -1,0 +1,7 @@
+---
+nginx_client_max_body_size: "10M"
+nginx_prod_upstream_port: 3000
+nginx_dev_upstream_port: 3001
+nginx_prod_primary_domain: sleev.org
+nginx_prod_alt_domain: www.sleev.org
+nginx_dev_domain: dev.sleev.org
