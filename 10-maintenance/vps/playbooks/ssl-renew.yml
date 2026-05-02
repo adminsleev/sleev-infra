@@ -1,5 +1,5 @@
 ---
-# 10-maintenance/playbooks/ssl-renew.yml
+# 10-maintenance/vps/playbooks/ssl-renew.yml
 # Usage (via Justfile):
 #   just ssl-renew
 #

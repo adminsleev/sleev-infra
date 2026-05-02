@@ -1,5 +1,5 @@
 ---
-# 10-maintenance/playbooks/db-backup.yml
+# 10-maintenance/vps/playbooks/db-backup.yml
 # Usage (via Justfile):
 #   just db-backup-dev
 #   just db-backup-prod

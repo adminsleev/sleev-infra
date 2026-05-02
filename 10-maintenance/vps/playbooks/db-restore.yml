@@ -1,5 +1,5 @@
 ---
-# 10-maintenance/playbooks/db-restore.yml
+# 10-maintenance/vps/playbooks/db-restore.yml
 # Usage (via Justfile):
 #   just db-restore-prod /opt/backups/db/prod_2026-05-01.dump
 #
