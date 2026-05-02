@@ -19,7 +19,7 @@ bootstrap:
 
     echo "Decrypting secrets..."
     TAILSCALE_KEY=$(sops --decrypt --extract '["TAILSCALE_AUTH_KEY"]' 90-secrets/prod.enc.yaml)
-    DEPLOY_PUBKEY=$(cat ~/.ssh/sleev_deploy.pub 2>/dev/null || echo "")
+    DEPLOY_PUBKEY=$(cat ~/.ssh/sleev_deploy.pub 2>/dev/null || { echo "ERROR: ~/.ssh/sleev_deploy.pub not found. Run: ssh-keygen -t ed25519 -f ~/.ssh/sleev_deploy -C github-actions-sleev-deploy"; exit 1; })
     R2_ENDPOINT=$(sops --decrypt --extract '["R2_ENDPOINT"]' 90-secrets/prod.enc.yaml)
     R2_KEY=$(sops --decrypt --extract '["R2_ACCESS_KEY_ID"]' 90-secrets/prod.enc.yaml)
     R2_SECRET=$(sops --decrypt --extract '["R2_SECRET_ACCESS_KEY"]' 90-secrets/prod.enc.yaml)
@@ -61,7 +61,7 @@ provision:
     CERTBOT_EMAIL=$(sops --decrypt --extract '["CERTBOT_EMAIL"]' 90-secrets/prod.enc.yaml)
     DEV_HTPASSWD_USER=$(sops --decrypt --extract '["DEV_HTPASSWD_USER"]' 90-secrets/dev.enc.yaml)
     DEV_HTPASSWD_PASS=$(sops --decrypt --extract '["DEV_HTPASSWD_PASS"]' 90-secrets/dev.enc.yaml)
-    DEPLOY_PUBKEY=$(cat ~/.ssh/sleev_deploy.pub 2>/dev/null || echo "")
+    DEPLOY_PUBKEY=$(cat ~/.ssh/sleev_deploy.pub 2>/dev/null || { echo "ERROR: ~/.ssh/sleev_deploy.pub not found. Run: ssh-keygen -t ed25519 -f ~/.ssh/sleev_deploy -C github-actions-sleev-deploy"; exit 1; })
     R2_ENDPOINT=$(sops --decrypt --extract '["R2_ENDPOINT"]' 90-secrets/prod.enc.yaml)
     R2_KEY=$(sops --decrypt --extract '["R2_ACCESS_KEY_ID"]' 90-secrets/prod.enc.yaml)
     R2_SECRET=$(sops --decrypt --extract '["R2_SECRET_ACCESS_KEY"]' 90-secrets/prod.enc.yaml)
