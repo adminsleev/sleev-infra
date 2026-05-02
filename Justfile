@@ -10,7 +10,7 @@ _sops_get file key:
 # ── Bootstrap (one-time) ─────────────────────────────────────────────────────
 
 # First-time VPS setup: install Tailscale via public SSH, then lock down SSH.
-# Prerequisites: fill in 00-provision/inventories/bootstrap/group_vars/all.yml with the public VPS IP.
+# Prerequisites: fill in inventories/bootstrap/group_vars/all.yml with the public VPS IP.
 bootstrap:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -35,14 +35,14 @@ bootstrap:
     VARS
 
     ansible-playbook \
-        -i 00-provision/inventories/bootstrap \
+        -i inventories/bootstrap \
         00-provision/playbooks/bootstrap.yml \
         --extra-vars "@$TMPVARS"
 
     echo ""
     echo "==> Bootstrap complete."
     echo "    1. Check Tailscale admin console — VPS should appear as 'sleev-vps'"
-    echo "    2. Update 00-provision/inventories/dev/hosts.yml and prod/hosts.yml"
+    echo "    2. Update inventories/dev/hosts.yml and prod/hosts.yml"
     echo "       if the Tailscale hostname differs from 'sleev-vps'"
     echo "    3. Run: just provision"
 
@@ -81,7 +81,7 @@ provision:
     VARS
 
     ansible-playbook \
-        -i 00-provision/inventories/prod \
+        -i inventories/prod \
         00-provision/playbooks/provision.yml \
         --extra-vars "@$TMPVARS"
 
@@ -107,7 +107,7 @@ gen-age-key:
 
 # Install Ansible Galaxy collections
 deps:
-    ansible-galaxy collection install -r 00-provision/requirements.yml
+    ansible-galaxy collection install -r requirements.yml
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Deploy targets
@@ -123,7 +123,7 @@ deploy-dev tag:
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
     ansible-playbook \
-        -i 00-provision/inventories/dev/hosts.yml \
+        -i inventories/dev/hosts.yml \
         05-deploy/playbooks/deploy.yml \
         -e env=dev \
         -e image_tag={{ tag }}
@@ -134,7 +134,7 @@ deploy-prod tag:
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
     ansible-playbook \
-        -i 00-provision/inventories/prod/hosts.yml \
+        -i inventories/prod/hosts.yml \
         05-deploy/playbooks/deploy.yml \
         -e env=prod \
         -e image_tag={{ tag }}
@@ -152,7 +152,7 @@ rollback-prod tag:
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
     ansible-playbook \
-        -i 00-provision/inventories/prod/hosts.yml \
+        -i inventories/prod/hosts.yml \
         05-deploy/playbooks/rollback.yml \
         -e env=prod \
         -e image_tag={{ tag }}
@@ -166,7 +166,7 @@ db-backup-dev:
     #!/usr/bin/env bash
     set -euo pipefail
     ansible-playbook \
-        -i 00-provision/inventories/dev/hosts.yml \
+        -i inventories/dev/hosts.yml \
         10-maintenance/playbooks/db-backup.yml \
         -e env=dev
 
@@ -175,7 +175,7 @@ db-backup-prod:
     #!/usr/bin/env bash
     set -euo pipefail
     ansible-playbook \
-        -i 00-provision/inventories/prod/hosts.yml \
+        -i inventories/prod/hosts.yml \
         10-maintenance/playbooks/db-backup.yml \
         -e env=prod
 
@@ -188,7 +188,7 @@ db-restore-prod dump:
     echo "Press Ctrl-C within 5 seconds to abort..."
     sleep 5
     ansible-playbook \
-        -i 00-provision/inventories/prod/hosts.yml \
+        -i inventories/prod/hosts.yml \
         10-maintenance/playbooks/db-restore.yml \
         -e env=prod \
         -e dump_file={{ dump }}
@@ -198,5 +198,5 @@ ssl-renew:
     #!/usr/bin/env bash
     set -euo pipefail
     ansible-playbook \
-        -i 00-provision/inventories/prod/hosts.yml \
+        -i inventories/prod/hosts.yml \
         10-maintenance/playbooks/ssl-renew.yml
