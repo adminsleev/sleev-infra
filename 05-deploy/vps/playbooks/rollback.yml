@@ -1,5 +1,5 @@
 ---
-# 05-deploy/playbooks/rollback.yml
+# 05-deploy/vps/playbooks/rollback.yml
 # Usage (via Justfile):
 #   just rollback-prod prod-abc1234
 #
@@ -30,7 +30,7 @@
 
     - name: Load server-wide SOPS secrets
       community.sops.load_vars:
-        file: "{{ playbook_dir }}/../../90-secrets/enc.server.yaml"
+        file: "{{ playbook_dir }}/../../../90-secrets/enc.server.yaml"
         expressions: evaluate-on-load
       delegate_to: localhost
       run_once: true
@@ -38,7 +38,7 @@
 
     - name: Load SOPS-encrypted secrets for {{ env }}
       community.sops.load_vars:
-        file: "{{ playbook_dir }}/../../90-secrets/enc.{{ env }}.yaml"
+        file: "{{ playbook_dir }}/../../../90-secrets/enc.{{ env }}.yaml"
         expressions: evaluate-on-load
       delegate_to: localhost
       run_once: true
