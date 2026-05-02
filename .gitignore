@@ -13,5 +13,8 @@ provision/.tmp_vars_*.yml
 # bootstrap group_vars holds real IPs at run-time — never commit
 inventories/bootstrap/group_vars/all.yml
 
+# direnv
+.direnv/
+
 # OS
 .DS_Store
