@@ -1,0 +1,28 @@
+# App
+NODE_ENV: production
+NEXT_PUBLIC_APP_URL: https://sleev.org
+
+# Database
+DATABASE_URL: postgresql://app_prod:CHANGE_ME@host.docker.internal:5432/app_prod
+PG_PASSWORD: CHANGE_ME_STRONG_RANDOM
+
+# Email
+SMTP_HOST: smtp.gmail.com
+SMTP_PORT: "587"
+SMTP_USER: CHANGE_ME
+SMTP_PASS: CHANGE_ME
+
+# Tailscale
+TAILSCALE_AUTH_KEY: CHANGE_ME
+
+# GHCR
+GHCR_TOKEN: CHANGE_ME
+
+# Certbot
+CERTBOT_EMAIL: CHANGE_ME
+
+# Cloudflare R2
+R2_ENDPOINT: https://ACCOUNT_ID.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID: CHANGE_ME
+R2_SECRET_ACCESS_KEY: CHANGE_ME
+R2_BUCKET: sleev-backups

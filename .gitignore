@@ -1,8 +1,8 @@
 # secrets — block everything, whitelist only SOPS-encrypted files and the SOPS config
-secrets/*
-!secrets/.gitkeep
-!secrets/.sops.yaml
-!secrets/*.enc.yaml
+90-secrets/*
+!90-secrets/.gitkeep
+!90-secrets/.sops.yaml
+!90-secrets/*.enc.yaml
 /tmp/
 
 # Ansible
