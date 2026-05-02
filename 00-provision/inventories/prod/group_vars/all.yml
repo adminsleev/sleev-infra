@@ -1,0 +1,12 @@
+---
+env: prod
+app_port: 3000
+pg_port: 5432
+pg_db: app_prod
+pg_user: app_prod
+domain: sleev.org
+app_dir: /opt/app/prod
+backup_dir: /opt/backups/prod
+
+# Public key for the deploy OS user (GitHub Actions SSH key)
+deploy_ssh_public_key: "ssh-ed25519 AAAA... github-actions-sleev-deploy"
