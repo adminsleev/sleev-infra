@@ -1,5 +1,7 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
+ghcr_image := "ghcr.io/sleev/sleev-website-app"
+
 # ── Bootstrap ────────────────────────────────────────────────────────────────
 # Two-phase VPS setup. Phase 1 via public SSH (password), Phase 2 via Tailscale.
 # Skips Phase 1 automatically if VPS is already reachable on Tailscale.
@@ -122,7 +124,8 @@ deploy target env tag:
         -i inventories/{{ env }} \
         {{ target }}/playbooks/deploy.yml \
         -e env={{ env }} \
-        -e image_tag={{ tag }}
+        -e image_tag={{ tag }} \
+        -e ghcr_image={{ ghcr_image }}
 
 # ── Rollback ─────────────────────────────────────────────────────────────────
 # Roll back to a previous image tag (migrations disabled).
@@ -137,7 +140,8 @@ rollback target env tag:
         -i inventories/{{ env }} \
         {{ target }}/playbooks/rollback.yml \
         -e env={{ env }} \
-        -e image_tag={{ tag }}
+        -e image_tag={{ tag }} \
+        -e ghcr_image={{ ghcr_image }}
 
 # ── Backup ───────────────────────────────────────────────────────────────────
 # Backup database to R2.

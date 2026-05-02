@@ -46,8 +46,7 @@
   roles:
     - role: app
       vars:
-        # Image
-        ghcr_image: "ghcr.io/{{ ghcr_owner }}/sleev"
+        # Image — ghcr_image passed as extra-var from workflow or Justfile
         # App layout
         app_dir: "/opt/app/{{ env }}"
         app_port: "{{ '3000' if env == 'prod' else '3001' }}"
