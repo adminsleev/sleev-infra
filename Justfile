@@ -1,23 +1,17 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-# Decrypt a key from a SOPS file: _sops_get FILE KEY
-_sops_get file key:
-    #!/usr/bin/env bash
-    sops --decrypt --extract '["{{key}}"]' {{file}}
-
-# ── Bootstrap (one-time) ─────────────────────────────────────────────────────
-
-# Two-phase VPS setup:
-#   Phase 1 — public SSH (password): installs Tailscale, adds operator key to root
-#   Phase 2 — Tailscale (key auth):  hardens SSH, creates deploy user, enables UFW
+# ── Bootstrap ────────────────────────────────────────────────────────────────
+# Two-phase VPS setup. Phase 1 via public SSH (password), Phase 2 via Tailscale.
+# Skips Phase 1 automatically if VPS is already reachable on Tailscale.
+#
+# Usage: just bootstrap 00-environment/vps
 #
 # Prerequisites:
 #   - inventories/bootstrap/group_vars/all.yml has the VPS public IP
-#   - ~/.ssh/id_ed25519 is your operator key (you can SSH to the VPS with it)
-#   - ~/.ssh/sleev_github_to_vps_deploy.pub exists (GitHub Actions deploy key)
-bootstrap:
+#   - ~/.ssh/id_ed25519_hostinger_vpsleev_vps-access is the operator key
+#   - ~/.ssh/sleev_github_to_vps_deploy.pub is the GitHub Actions deploy key
+
+bootstrap target:
     #!/usr/bin/env bash
     set -euo pipefail
     TMPVARS=$(mktemp /tmp/bootstrap-vars-XXXXXX.yml)
@@ -42,7 +36,6 @@ bootstrap:
     r2_bucket: "${R2_BUCKET}"
     VARS
 
-    # Check if VPS is already reachable on Tailscale — skip Phase 1 if so.
     if ssh -q -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
             -i ~/.ssh/id_ed25519_hostinger_vpsleev_vps-access \
             root@sleev-vps exit 2>/dev/null; then
@@ -50,15 +43,15 @@ bootstrap:
         echo "==> VPS already reachable on Tailscale — skipping Phase 1."
     else
         echo ""
-        echo "==> Phase 1: Installing Tailscale via public SSH (you will be prompted for the root password)..."
+        echo "==> Phase 1: Installing Tailscale via public SSH (password prompt follows)..."
         ansible-playbook \
             -i inventories/bootstrap \
-            00-provision/playbooks/bootstrap.yml \
+            {{ target }}/playbooks/bootstrap.yml \
             --ask-pass \
             --extra-vars "@$TMPVARS"
 
         echo ""
-        echo "==> Phase 1 complete. Waiting 10 seconds for Tailscale to register on the tailnet..."
+        echo "==> Phase 1 complete. Waiting 10 seconds for Tailscale to register..."
         sleep 10
     fi
 
@@ -66,18 +59,19 @@ bootstrap:
     echo "==> Phase 2: Hardening VPS via Tailscale (key auth)..."
     ansible-playbook \
         -i inventories/prod \
-        00-provision/playbooks/harden.yml \
+        {{ target }}/playbooks/harden.yml \
         --extra-vars "@$TMPVARS"
 
     echo ""
     echo "==> Bootstrap complete. SSH is now locked to Tailscale only."
-    echo "    1. Verify VPS appears in Tailscale admin console as 'sleev-vps'"
-    echo "    2. Run: just provision"
+    echo "    Run: just provision 00-environment/vps"
 
-# ── Provisioning ─────────────────────────────────────────────────────────────
-
+# ── Provision ────────────────────────────────────────────────────────────────
 # Full VPS provisioning via Tailscale (run after bootstrap).
-provision:
+#
+# Usage: just provision 00-environment/vps
+
+provision target:
     #!/usr/bin/env bash
     set -euo pipefail
     TMPVARS=$(mktemp /tmp/provision-vars-XXXXXX.yml)
@@ -89,7 +83,7 @@ provision:
     CERTBOT_EMAIL=$(sops --decrypt --extract '["CERTBOT_EMAIL"]' 90-secrets/enc.server.yaml)
     DEV_HTPASSWD_USER=$(sops --decrypt --extract '["DEV_HTPASSWD_USER"]' 90-secrets/enc.dev.yaml)
     DEV_HTPASSWD_PASS=$(sops --decrypt --extract '["DEV_HTPASSWD_PASS"]' 90-secrets/enc.dev.yaml)
-    DEPLOY_PUBKEY=$(cat ~/.ssh/sleev_github_to_vps_deploy.pub 2>/dev/null || { echo "ERROR: ~/.ssh/sleev_github_to_vps_deploy.pub not found. Run: ssh-keygen -t ed25519 -f ~/.ssh/sleev_github_to_vps_deploy -C github-actions-sleev-deploy"; exit 1; })
+    DEPLOY_PUBKEY=$(cat ~/.ssh/sleev_github_to_vps_deploy.pub 2>/dev/null || { echo "ERROR: ~/.ssh/sleev_github_to_vps_deploy.pub not found."; exit 1; })
     R2_ENDPOINT=$(sops --decrypt --extract '["R2_ENDPOINT"]' 90-secrets/enc.server.yaml)
     R2_KEY=$(sops --decrypt --extract '["R2_ACCESS_KEY_ID"]' 90-secrets/enc.server.yaml)
     R2_SECRET=$(sops --decrypt --extract '["R2_SECRET_ACCESS_KEY"]' 90-secrets/enc.server.yaml)
@@ -110,121 +104,123 @@ provision:
 
     ansible-playbook \
         -i inventories/prod \
-        00-provision/playbooks/provision.yml \
+        {{ target }}/playbooks/provision.yml \
         --extra-vars "@$TMPVARS"
 
+# ── Deploy ───────────────────────────────────────────────────────────────────
+# Deploy a container image to dev or prod.
+#
+# Usage:
+#   just deploy 05-deploy/vps dev dev-abc1234
+#   just deploy 05-deploy/vps prod prod-abc1234
+
+deploy target env tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    ansible-playbook \
+        -i inventories/{{ env }} \
+        {{ target }}/playbooks/deploy.yml \
+        -e env={{ env }} \
+        -e image_tag={{ tag }}
+
+# ── Rollback ─────────────────────────────────────────────────────────────────
+# Roll back to a previous image tag (migrations disabled).
+#
+# Usage: just rollback 05-deploy/vps prod prod-abc1234
+
+rollback target env tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    ansible-playbook \
+        -i inventories/{{ env }} \
+        {{ target }}/playbooks/rollback.yml \
+        -e env={{ env }} \
+        -e image_tag={{ tag }}
+
+# ── Backup ───────────────────────────────────────────────────────────────────
+# Backup database to R2.
+#
+# Usage:
+#   just backup 10-maintenance/vps dev
+#   just backup 10-maintenance/vps prod
+
+backup target env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ansible-playbook \
+        -i inventories/{{ env }} \
+        {{ target }}/playbooks/db-backup.yml \
+        -e env={{ env }}
+
+# ── Restore ──────────────────────────────────────────────────────────────────
+# Restore PROD database from a dump file on the VPS.
+# WARNING: destroys current data in app_prod.
+#
+# Usage: just restore 10-maintenance/vps prod /opt/backups/db/prod_2026-05-01.dump
+
+restore target env dump:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "WARNING: This will DESTROY all data in app_{{ env }} and restore from {{ dump }}"
+    echo "Press Ctrl-C within 5 seconds to abort..."
+    sleep 5
+    ansible-playbook \
+        -i inventories/{{ env }} \
+        {{ target }}/playbooks/db-restore.yml \
+        -e env={{ env }} \
+        -e "dump_file={{ dump }}"
+
+# ── SSL renew ────────────────────────────────────────────────────────────────
+# Renew SSL certificates via certbot --nginx.
+#
+# Usage: just ssl-renew 10-maintenance/vps
+
+ssl-renew target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ansible-playbook \
+        -i inventories/prod \
+        {{ target }}/playbooks/ssl-renew.yml
+
 # ── Secrets ──────────────────────────────────────────────────────────────────
+# Open a SOPS-encrypted secrets file in your editor.
+#
+# Usage:
+#   just secrets dev
+#   just secrets prod
+#   just secrets server
 
-# Edit DEV secrets with SOPS
-secrets-edit-dev:
-    sops 90-secrets/enc.dev.yaml
+secrets env:
+    sops 90-secrets/enc.{{ env }}.yaml
 
-# Edit PROD secrets with SOPS
-secrets-edit-prod:
-    sops 90-secrets/enc.prod.yaml
+# ── Local (Docker Compose) ───────────────────────────────────────────────────
+# Start/stop local development environment.
+#
+# Usage:
+#   just local up
+#   just local down
 
-# ── Local setup ──────────────────────────────────────────────────────────────
+local cmd:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ cmd }}" in
+        up)   docker compose -f ../sleev-website-app/docker-compose.local.yml up -d ;;
+        down) docker compose -f ../sleev-website-app/docker-compose.local.yml down ;;
+        *)    echo "Usage: just local up|down"; exit 1 ;;
+    esac
 
-# Install local toolchain (run this first, before any other target)
+# ── Setup ────────────────────────────────────────────────────────────────────
+
+# Install local toolchain (run this first)
 setup:
     bash 95-scripts/setup-local.sh
-
-# Generate a new age keypair (one-time only)
-gen-age-key:
-    bash 95-scripts/gen-age-key.sh
 
 # Install Ansible Galaxy collections
 deps:
     ansible-galaxy collection install -r requirements.yml
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Deploy targets
-# Usage:
-#   just deploy-dev dev-abc1234
-#   just deploy-prod prod-abc1234
-# The image_tag must match a tag pushed to GHCR by the CI pipeline.
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Deploy to DEV environment
-deploy-dev tag:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
-    ansible-playbook \
-        -i inventories/dev/hosts.yml \
-        05-deploy/playbooks/deploy.yml \
-        -e env=dev \
-        -e image_tag={{ tag }}
-
-# Deploy to PROD environment
-deploy-prod tag:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
-    ansible-playbook \
-        -i inventories/prod/hosts.yml \
-        05-deploy/playbooks/deploy.yml \
-        -e env=prod \
-        -e image_tag={{ tag }}
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Rollback targets
-# Usage:
-#   just rollback-prod prod-abc1234
-# Rolls back to the specified image tag WITHOUT running migrations.
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Rollback PROD to a previous image tag (migrations disabled)
-rollback-prod tag:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
-    ansible-playbook \
-        -i inventories/prod/hosts.yml \
-        05-deploy/playbooks/rollback.yml \
-        -e env=prod \
-        -e image_tag={{ tag }}
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Maintenance targets
-# ──────────────────────────────────────────────────────────────────────────────
-
-# Backup DEV database to R2
-db-backup-dev:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ansible-playbook \
-        -i inventories/dev/hosts.yml \
-        10-maintenance/playbooks/db-backup.yml \
-        -e env=dev
-
-# Backup PROD database to R2
-db-backup-prod:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ansible-playbook \
-        -i inventories/prod/hosts.yml \
-        10-maintenance/playbooks/db-backup.yml \
-        -e env=prod
-
-# Restore PROD database from a dump file on the VPS
-# Usage: just db-restore-prod /opt/backups/db/prod_2026-05-01.dump
-db-restore-prod dump:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    echo "WARNING: This will DESTROY all data in app_prod and restore from {{ dump }}"
-    echo "Press Ctrl-C within 5 seconds to abort..."
-    sleep 5
-    ansible-playbook \
-        -i inventories/prod/hosts.yml \
-        10-maintenance/playbooks/db-restore.yml \
-        -e env=prod \
-        -e "dump_file={{ dump }}"
-
-# Renew SSL certificates via certbot --nginx on the VPS
-ssl-renew:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ansible-playbook \
-        -i inventories/prod/hosts.yml \
-        10-maintenance/playbooks/ssl-renew.yml
+# Generate a new age keypair (one-time only)
+gen-age-key:
+    bash 95-scripts/gen-age-key.sh
