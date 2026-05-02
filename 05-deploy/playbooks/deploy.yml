@@ -1,0 +1,51 @@
+---
+# 05-deploy/playbooks/deploy.yml
+# Usage (via Justfile):
+#   just deploy-dev dev-abc1234
+#   just deploy-prod prod-abc1234
+#
+# Required extra-vars: env, image_tag
+# Secrets loaded from: 90-secrets/{{ env }}.enc.yaml (decrypted on localhost by SOPS)
+
+- name: "Deploy sleev app — {{ env | upper }}"
+  hosts: all
+  remote_user: deploy
+  become: false
+  gather_facts: false
+
+  pre_tasks:
+    - name: Load SOPS-encrypted secrets for {{ env }}
+      community.sops.load_vars:
+        file: "{{ playbook_dir }}/../../90-secrets/{{ env }}.enc.yaml"
+        expressions: evaluate-on-load
+      delegate_to: localhost
+      run_once: true
+      no_log: true
+
+    - name: Validate required extra-vars are present
+      ansible.builtin.assert:
+        that:
+          - env is defined and env in ['dev', 'prod']
+          - image_tag is defined and image_tag | length > 0
+        fail_msg: >-
+          Both `env` (dev|prod) and `image_tag` must be supplied as --extra-vars.
+          Example: ansible-playbook deploy.yml -e env=prod -e image_tag=prod-abc1234
+
+  roles:
+    - role: app
+      vars:
+        # Image
+        ghcr_image: "ghcr.io/{{ ghcr_owner }}/sleev"
+        # App layout
+        app_dir: "/opt/app/{{ env }}"
+        app_port: "{{ '3000' if env == 'prod' else '3001' }}"
+        # Database
+        pg_port: "{{ '5432' if env == 'prod' else '5433' }}"
+        pg_db: "app_{{ env }}"
+        pg_user: "app_{{ env }}"
+        # Migrations enabled by default
+        run_migrations: true
+        # Secrets sourced from SOPS (loaded in pre_tasks above)
+        # ghcr_token, ghcr_owner, node_env, database_url, smtp_host,
+        # smtp_port, smtp_user, smtp_pass, next_public_app_url
+        # are all available as top-level vars after load_vars.
