@@ -2,7 +2,7 @@
 - name: Update apt cache and upgrade packages
   ansible.builtin.apt:
     update_cache: true
-    upgrade: dist
+    upgrade: safe
     cache_valid_time: 3600
 
 - name: Install base packages
@@ -41,6 +41,8 @@
     mode: "0600"
   no_log: true
 
+# Partial Coolify cleanup — stops the service and removes its nginx config only.
+# Docker containers, volumes, and /data/coolify are left in place.
 - name: Stop Coolify service if present
   ansible.builtin.systemd:
     name: coolify
@@ -56,24 +58,24 @@
 
 - name: Create deploy OS user
   ansible.builtin.user:
-    name: deploy
+    name: "{{ common_deploy_user }}"
     shell: /bin/bash
     create_home: true
-    home: /home/deploy
+    home: "{{ common_deploy_home }}"
     password: "!"
     state: present
 
 - name: Create deploy .ssh directory
   ansible.builtin.file:
-    path: /home/deploy/.ssh
+    path: "{{ common_deploy_home }}/.ssh"
     state: directory
-    owner: deploy
-    group: deploy
+    owner: "{{ common_deploy_user }}"
+    group: "{{ common_deploy_user }}"
     mode: "0700"
 
 - name: Set authorized key for deploy user
   ansible.posix.authorized_key:
-    user: deploy
+    user: "{{ common_deploy_user }}"
     key: "{{ deploy_ssh_public_key }}"
     state: present
 
@@ -81,18 +83,18 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: deploy
-    group: deploy
+    owner: "{{ common_deploy_user }}"
+    group: "{{ common_deploy_user }}"
     mode: "0755"
   loop:
-    - /opt/app
-    - /opt/app/dev
-    - /opt/app/prod
-    - /opt/backups
-    - /opt/backups/dev
-    - /opt/backups/dev/db
-    - /opt/backups/prod
-    - /opt/backups/prod/db
+    - "{{ common_app_base_dir }}"
+    - "{{ common_app_base_dir }}/dev"
+    - "{{ common_app_base_dir }}/prod"
+    - "{{ common_backup_base_dir }}"
+    - "{{ common_backup_base_dir }}/dev"
+    - "{{ common_backup_base_dir }}/dev/db"
+    - "{{ common_backup_base_dir }}/prod"
+    - "{{ common_backup_base_dir }}/prod/db"
 
 - name: Disable password authentication in sshd
   ansible.builtin.lineinfile:
@@ -147,6 +149,9 @@
     proto: tcp
     src: "{{ common_tailscale_cidr }}"
 
+# IMPORTANT: Tailscale must be running and have an IP in 100.64.0.0/10 before this task
+# runs, otherwise the SSH rule below won't match the current connection and the session
+# will be locked out. The bootstrap playbook runs the tailscale role before this role.
 - name: Enable UFW
   community.general.ufw:
     state: enabled
