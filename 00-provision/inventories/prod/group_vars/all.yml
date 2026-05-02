@@ -7,6 +7,7 @@ pg_user: app_prod
 domain: sleev.org
 app_dir: /opt/app/prod
 backup_dir: /opt/backups/prod
+backup_retention_days: 7
 
 # Public key for the deploy OS user (GitHub Actions SSH key).
 # Dev and prod share the same deploy keypair since they live on the same VPS.
