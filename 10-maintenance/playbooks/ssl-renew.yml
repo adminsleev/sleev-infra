@@ -1,0 +1,45 @@
+---
+# 10-maintenance/playbooks/ssl-renew.yml
+# Usage (via Justfile):
+#   just ssl-renew
+#
+# No extra-vars required. Runs against all hosts (both dev and prod certs
+# live on the same VPS).
+#
+# Privilege model: entire playbook runs as root (become: true on the play level)
+# because certbot writes to /etc/letsencrypt and nginx reload needs root.
+#
+# Certbot is assumed to be installed with the nginx plugin
+# (python3-certbot-nginx). The --nginx flag handles reload automatically
+# when a cert is actually renewed; the explicit nginx reload below is a
+# belt-and-suspenders safety net.
+
+- name: "SSL certificate renewal"
+  hosts: all
+  remote_user: root
+  become: true
+  gather_facts: false
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+  tasks:
+    - name: "1/2 | Run certbot renew --nginx"
+      ansible.builtin.command:
+        cmd: certbot renew --nginx --non-interactive
+      changed_when: "'Congratulations' in certbot_result.stdout or 'renewed' in certbot_result.stdout"
+      register: certbot_result
+      notify: reload nginx
+
+    - name: "1/2 | Log certbot output"
+      ansible.builtin.debug:
+        msg: "{{ certbot_result.stdout_lines }}"
+
+    - name: "2/2 | Ensure nginx is running after renewal"
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
