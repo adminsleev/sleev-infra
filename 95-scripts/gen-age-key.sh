@@ -15,7 +15,7 @@ age-keygen -o "$KEYFILE"
 echo ""
 echo "==> Age keypair generated at $KEYFILE"
 echo ""
-echo "Your PUBLIC key (add this to secrets/.sops.yaml):"
+echo "Your PUBLIC key (add this to 90-secrets/.sops.yaml):"
 grep "^# public key:" "$KEYFILE" | awk '{print $NF}'
 echo ""
 echo "WARNING: NEVER commit $KEYFILE to git."

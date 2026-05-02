@@ -1,5 +1,6 @@
+# Template - copy to dev.enc.yaml, fill in values, then: sops --encrypt --in-place dev.enc.yaml
 # App
-NODE_ENV: production
+NODE_ENV: development
 NEXT_PUBLIC_APP_URL: https://dev.sleev.org
 
 # Database

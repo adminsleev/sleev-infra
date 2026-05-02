@@ -2,7 +2,7 @@
 90-secrets/*
 !90-secrets/.gitkeep
 !90-secrets/.sops.yaml
-!90-secrets/*.enc.yaml
+!90-secrets/*.enc.yaml.tpl
 /tmp/
 
 # Ansible
