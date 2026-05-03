@@ -124,7 +124,7 @@ deploy target env image tag='':
     APP_REPO="${APP_REPO:-{{justfile_directory()}}/../sleev-website-app}"
     resolved_tag="{{ if tag == '' { env } else { tag } }}"
     APP_VARS=$(mktemp /tmp/app-vars-XXXXXX.yml)
-    trap "rm -f $APP_VARS" EXIT
+    trap 'rm -f "$APP_VARS"' EXIT
     sops --decrypt "$APP_REPO/secrets/enc.app.{{env}}.yaml" > "$APP_VARS"
     ansible-playbook \
         -i inventories/{{env}} \
@@ -145,13 +145,13 @@ rollback target env image tag:
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
     APP_REPO="${APP_REPO:-{{justfile_directory()}}/../sleev-website-app}"
     APP_VARS=$(mktemp /tmp/app-vars-XXXXXX.yml)
-    trap "rm -f $APP_VARS" EXIT
+    trap 'rm -f "$APP_VARS"' EXIT
     sops --decrypt "$APP_REPO/secrets/enc.app.{{env}}.yaml" > "$APP_VARS"
     ansible-playbook \
         -i inventories/{{env}} \
         {{target}}/playbooks/rollback.yml \
         -e env={{env}} \
-        -e image_tag={{tag}} \
+        -e image_tag="{{tag}}" \
         -e ghcr_image={{image}} \
         --extra-vars "@$APP_VARS"
 
