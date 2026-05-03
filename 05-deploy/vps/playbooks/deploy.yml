@@ -52,6 +52,22 @@
         app_port: "{{ '3000' if env == 'prod' else '3001' }}"
         # Migrations enabled by default
         run_migrations: true
-        # Secrets sourced from SOPS (loaded in pre_tasks above)
-        # enc.server.yaml: ghcr_read_token, smtp_host, smtp_port, smtp_user, smtp_pass
-        # enc.{{ env }}.yaml: node_env, database_url, next_public_app_url
+        # Secrets sourced from SOPS (loaded in pre_tasks above).
+        # All variables below must exist in the relevant SOPS file before deploying.
+        #
+        # enc.server.yaml:
+        #   ghcr_read_token        — GHCR pull token
+        #   email_auth_host        — SMTP hostname           (app: EMAIL_AUTH_HOST)
+        #   email_auth_port        — SMTP port               (app: EMAIL_AUTH_PORT)
+        #   email_auth_user        — SMTP username           (app: EMAIL_AUTH_USER)
+        #   email_auth_password    — SMTP password           (app: EMAIL_AUTH_PASSWORD)
+        #   email_from             — sender address          (app: EMAIL_FROM)
+        #   email_to               — recipient address       (app: EMAIL_TO)
+        #   ga_id                  — Google Analytics ID     (app: NEXT_PUBLIC_GA_ID)
+        #   recaptcha_site_key     — reCAPTCHA site key      (app: NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
+        #   recaptcha_secret_key   — reCAPTCHA secret key    (app: RECAPTCHA_SECRET_KEY)
+        #
+        # enc.{{ env }}.yaml:
+        #   node_env               — NODE_ENV value          (app: NODE_ENV)
+        #   database_url           — PostgreSQL URL           (app: DATABASE_URL)
+        #   next_public_app_url    — canonical app URL        (app: NEXT_PUBLIC_APP_URL)
