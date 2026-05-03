@@ -3,12 +3,8 @@
 #
 # Key naming convention:
 #   UPPERCASE  = read by Justfile via `sops --extract` (provisioning secrets)
-#   lowercase  = loaded by community.sops.load_vars in deploy playbooks
-
-# App — loaded by deploy playbooks
-node_env: development
-next_public_app_url: https://dev.sleev.org
-database_url: postgresql://app_dev:CHANGE_ME@host.docker.internal:5433/app_dev
+#
+# App runtime secrets have moved to sleev-website-app/secrets/enc.app.dev.yaml
 
 # Database — read by Justfile provisioning
 PG_PASSWORD: CHANGE_ME_STRONG_RANDOM
