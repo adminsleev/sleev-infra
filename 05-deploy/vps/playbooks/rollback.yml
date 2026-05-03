@@ -1,10 +1,11 @@
 ---
 # 05-deploy/vps/playbooks/rollback.yml
 # Usage (via Justfile):
-#   just rollback-prod prod-abc1234
+#   just rollback 05-deploy/vps prod ghcr.io/sleev/sleev-website-app prod-abc1234
 #
 # Required extra-vars: env, image_tag (the previous known-good tag)
-# Secrets loaded from: 90-secrets/enc.server.yaml + 90-secrets/enc.{{ env }}.yaml
+# Infra secrets: 90-secrets/enc.server.yaml (ghcr_read_token)
+# App secrets: passed as --extra-vars from Justfile
 #
 # Migrations are intentionally DISABLED on rollback to avoid destructive schema
 # changes. Ensure the database schema is compatible with the rollback image before
@@ -36,14 +37,6 @@
       run_once: true
       no_log: true
 
-    - name: Load SOPS-encrypted secrets for {{ env }}
-      community.sops.load_vars:
-        file: "{{ playbook_dir }}/../../../90-secrets/enc.{{ env }}.yaml"
-        expressions: evaluate-on-load
-      delegate_to: localhost
-      run_once: true
-      no_log: true
-
     - name: Print rollback warning
       ansible.builtin.debug:
         msg: >-
@@ -53,10 +46,8 @@
   roles:
     - role: app
       vars:
-        # Image — ghcr_image passed as extra-var from workflow or Justfile
-        # App layout
         app_dir: "/opt/app/{{ env }}"
         app_port: "{{ '3000' if env == 'prod' else '3001' }}"
-        # KEY DIFFERENCE: migrations disabled for rollback
         run_migrations: false
-        # Secrets sourced from SOPS (loaded in pre_tasks above)
+        # enc.server.yaml provides: ghcr_read_token
+        # App vars arrive as --extra-vars from sleev-website-app/secrets/enc.app.{{ env }}.yaml

@@ -1,11 +1,13 @@
 ---
 # 05-deploy/vps/playbooks/deploy.yml
 # Usage (via Justfile):
-#   just deploy-dev dev-abc1234
-#   just deploy-prod prod-abc1234
+#   just deploy 05-deploy/vps dev ghcr.io/sleev/sleev-website-app
+#   just deploy 05-deploy/vps prod ghcr.io/sleev/sleev-website-app prod-abc1234
 #
-# Required extra-vars: env, image_tag
-# Secrets loaded from: 90-secrets/enc.server.yaml + 90-secrets/enc.{{ env }}.yaml
+# Required extra-vars: env, image_tag, ghcr_image
+# Infra secrets: 90-secrets/enc.server.yaml (ghcr_read_token)
+# App secrets: passed as --extra-vars from Justfile or GitHub Actions
+#              (decrypted from sleev-website-app/secrets/enc.app.{{ env }}.yaml)
 
 - name: "Deploy sleev app — {{ env | default('') | upper }}"
   hosts: all
@@ -13,8 +15,6 @@
   become: false
   gather_facts: false
   vars:
-    # Deploy user uses a dedicated SSH key (GitHub Actions deploy key).
-    # Overrides the root/provision key set in inventory.
     ansible_ssh_private_key_file: "~/.ssh/sleev_github_to_vps_deploy"
 
   pre_tasks:
@@ -35,39 +35,12 @@
       run_once: true
       no_log: true
 
-    - name: Load SOPS-encrypted secrets for {{ env }}
-      community.sops.load_vars:
-        file: "{{ playbook_dir }}/../../../90-secrets/enc.{{ env }}.yaml"
-        expressions: evaluate-on-load
-      delegate_to: localhost
-      run_once: true
-      no_log: true
-
   roles:
     - role: app
       vars:
-        # Image — ghcr_image passed as extra-var from workflow or Justfile
-        # App layout
         app_dir: "/opt/app/{{ env }}"
         app_port: "{{ '3000' if env == 'prod' else '3001' }}"
-        # Migrations enabled by default
         run_migrations: true
-        # Secrets sourced from SOPS (loaded in pre_tasks above).
-        # All variables below must exist in the relevant SOPS file before deploying.
-        #
-        # enc.server.yaml:
-        #   ghcr_read_token        — GHCR pull token
-        #   email_auth_host        — SMTP hostname           (app: EMAIL_AUTH_HOST)
-        #   email_auth_port        — SMTP port               (app: EMAIL_AUTH_PORT)
-        #   email_auth_user        — SMTP username           (app: EMAIL_AUTH_USER)
-        #   email_auth_password    — SMTP password           (app: EMAIL_AUTH_PASSWORD)
-        #   email_from             — sender address          (app: EMAIL_FROM)
-        #   email_to               — recipient address       (app: EMAIL_TO)
-        #   ga_id                  — Google Analytics ID     (app: NEXT_PUBLIC_GA_ID)
-        #   recaptcha_site_key     — reCAPTCHA site key      (app: NEXT_PUBLIC_RECAPTCHA_SITE_KEY)
-        #   recaptcha_secret_key   — reCAPTCHA secret key    (app: RECAPTCHA_SECRET_KEY)
-        #
-        # enc.{{ env }}.yaml:
-        #   node_env               — NODE_ENV value          (app: NODE_ENV)
-        #   database_url           — PostgreSQL URL           (app: DATABASE_URL)
-        #   next_public_app_url    — canonical app URL        (app: NEXT_PUBLIC_APP_URL)
+        # enc.server.yaml provides: ghcr_read_token
+        # App vars (database_url, email_*, ga_id, etc.) arrive as --extra-vars
+        # from sleev-website-app/secrets/enc.app.{{ env }}.yaml
