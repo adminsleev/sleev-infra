@@ -209,8 +209,8 @@ local cmd:
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{ cmd }}" in
-        up)   docker compose -f ../sleev-website-app/docker-compose.local.yml up -d ;;
-        down) docker compose -f ../sleev-website-app/docker-compose.local.yml down ;;
+        up)   docker compose -f 00-environment/local/docker-compose.yml up -d ;;
+        down) docker compose -f 00-environment/local/docker-compose.yml down ;;
         *)    echo "Usage: just local up|down"; exit 1 ;;
     esac
 

@@ -1,0 +1,30 @@
+# Local development only — PostgreSQL 18 database.
+# Usage:
+#   just local up
+#   just local down
+#
+# The app itself runs via: pnpm dev
+# Ensure .env.local has DATABASE_URL=postgresql://sleev:sleev@localhost:5432/sleev_dev
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: sleev_postgres_local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sleev
+      POSTGRES_PASSWORD: sleev
+      POSTGRES_DB: sleev_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - sleev_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sleev -d sleev_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sleev_postgres_data:
+    driver: local
