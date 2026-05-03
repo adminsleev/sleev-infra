@@ -2,14 +2,14 @@
 # Runs as the `deploy` user (no sudo). The deploy user is in the docker group.
 
 # Step 1: Authenticate to GitHub Container Registry
-- name: "1/10 | Login to GHCR"
+- name: "1/11 | Login to GHCR"
   ansible.builtin.command:
     cmd: "docker login ghcr.io -u {{ ghcr_owner }} -p {{ ghcr_read_token }}"
   changed_when: false
   no_log: true
 
 # Step 2: Render docker-compose.yml from template
-- name: "2/10 | Render docker-compose.yml from template"
+- name: "2/11 | Render docker-compose.yml from template"
   ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ app_dir }}/docker-compose.yml"
@@ -18,7 +18,7 @@
     mode: "{{ compose_file_mode }}"
 
 # Step 3: Write .env file from SOPS-decrypted secrets
-- name: "3/10 | Write .env file"
+- name: "3/11 | Write .env file"
   ansible.builtin.copy:
     dest: "{{ app_dir }}/.env"
     owner: deploy
@@ -27,42 +27,66 @@
     content: |
       NODE_ENV={{ node_env }}
       DATABASE_URL={{ database_url }}
-      SMTP_HOST={{ smtp_host }}
-      SMTP_PORT={{ smtp_port }}
-      SMTP_USER={{ smtp_user }}
-      SMTP_PASS={{ smtp_pass }}
+      EMAIL_AUTH_HOST={{ email_auth_host }}
+      EMAIL_AUTH_PORT={{ email_auth_port }}
+      EMAIL_AUTH_USER={{ email_auth_user }}
+      EMAIL_AUTH_PASSWORD={{ email_auth_password }}
+      EMAIL_FROM={{ email_from }}
+      EMAIL_TO={{ email_to }}
       NEXT_PUBLIC_APP_URL={{ next_public_app_url }}
+      NEXT_PUBLIC_GA_ID={{ ga_id }}
+      NEXT_PUBLIC_RECAPTCHA_SITE_KEY={{ recaptcha_site_key }}
+      RECAPTCHA_SECRET_KEY={{ recaptcha_secret_key }}
   no_log: true
 
 # Step 4: Pull the new image from GHCR
-- name: "4/10 | Pull Docker image"
+- name: "4/11 | Pull Docker image"
   ansible.builtin.command:
     cmd: docker compose pull
     chdir: "{{ app_dir }}"
   changed_when: false
 
-# Step 5: Start (or recreate) the container
-- name: "5/10 | Start container with docker compose up"
+# Step 5: Run database migrations before starting the app.
+# The migration container runs against the host-network postgres (network_mode: host),
+# exits on completion, and is removed automatically (cleanup: true).
+# If it exits non-zero, step 6 aborts the deploy before the app restarts.
+- name: "5/11 | Run database migrations"
+  community.docker.docker_container:
+    name: "app_migrate_{{ env }}"
+    image: "{{ ghcr_image }}:{{ image_tag }}"
+    command: node migrate.mjs
+    network_mode: host
+    detach: false
+    cleanup: true
+    env:
+      DATABASE_URL: "{{ database_url }}"
+    state: started
+  register: migration_result
+  no_log: true
+
+# Step 6: Abort deploy if migrations failed
+- name: "6/11 | Assert migrations succeeded"
+  ansible.builtin.assert:
+    that:
+      - migration_result.container.State.ExitCode == 0
+    fail_msg: >-
+      Database migrations failed (exit {{ migration_result.container.State.ExitCode }}).
+      Deploy aborted — app container has not been restarted.
+
+# Step 7: Start (or recreate) the container
+- name: "7/11 | Start container with docker compose up"
   ansible.builtin.command:
     cmd: docker compose up -d --remove-orphans
     chdir: "{{ app_dir }}"
   changed_when: true
 
-# Step 6: Wait for the container process to stabilise
-- name: "6/10 | Wait for container to stabilise"
+# Step 8: Wait for the container process to stabilise
+- name: "8/11 | Wait for container to stabilise"
   ansible.builtin.pause:
     seconds: "{{ container_stabilise_seconds }}"
 
-# Step 7: Run Drizzle ORM migrations (skipped on rollback)
-- name: "7/10 | Run Drizzle migrations"
-  ansible.builtin.command:
-    cmd: docker compose exec -T app pnpm drizzle-kit migrate
-    chdir: "{{ app_dir }}"
-  changed_when: true
-  when: run_migrations | default(true) | bool
-
-# Step 8: Health check the application
-- name: "8/10 | Health check — GET /api/health"
+# Step 9: Health check the application
+- name: "9/11 | Health check — GET /api/health"
   ansible.builtin.uri:
     url: "http://127.0.0.1:{{ app_port }}/api/health"
     method: GET
@@ -73,15 +97,15 @@
   delay: "{{ health_check_delay }}"
   until: health_result.status == 200
 
-# Step 9: Prune dangling/unused images to free disk space
-- name: "9/10 | Prune unused Docker images"
+# Step 10: Prune dangling/unused images to free disk space
+- name: "10/11 | Prune unused Docker images"
   ansible.builtin.command:
     cmd: docker image prune -f
   changed_when: false
 
-# Step 10: Log deploy summary (non-secret info only)
-- name: "10/10 | Deploy complete"
+# Step 11: Log deploy summary (non-secret info only)
+- name: "11/11 | Deploy complete"
   ansible.builtin.debug:
     msg: >-
       Deployed {{ ghcr_image }}:{{ image_tag }} to {{ env }}
-      on port {{ app_port }}. Migrations: {{ run_migrations | default(true) }}.
+      on port {{ app_port }}. Migrations applied.
