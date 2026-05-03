@@ -113,18 +113,26 @@ provision target:
 # Usage:
 #   just deploy 05-deploy/vps dev ghcr.io/sleev/sleev-website-app
 #   just deploy 05-deploy/vps prod ghcr.io/sleev/sleev-website-app prod-abc1234
+#
+# APP_REPO defaults to ../sleev-website-app (sibling directory).
+# Override: APP_REPO=/path/to/sleev-website-app just deploy ...
 
 deploy target env image tag='':
     #!/usr/bin/env bash
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    APP_REPO="${APP_REPO:-{{justfile_directory()}}/../sleev-website-app}"
     resolved_tag="{{ if tag == '' { env } else { tag } }}"
+    APP_VARS=$(mktemp /tmp/app-vars-XXXXXX.yml)
+    trap "rm -f $APP_VARS" EXIT
+    sops --decrypt "$APP_REPO/secrets/enc.app.{{env}}.yaml" > "$APP_VARS"
     ansible-playbook \
-        -i inventories/{{ env }} \
-        {{ target }}/playbooks/deploy.yml \
-        -e env={{ env }} \
+        -i inventories/{{env}} \
+        {{target}}/playbooks/deploy.yml \
+        -e env={{env}} \
         -e image_tag="$resolved_tag" \
-        -e ghcr_image={{ image }}
+        -e ghcr_image={{image}} \
+        --extra-vars "@$APP_VARS"
 
 # ── Rollback ─────────────────────────────────────────────────────────────────
 # Roll back to a previous image tag (migrations disabled).
@@ -135,12 +143,17 @@ rollback target env image tag:
     #!/usr/bin/env bash
     set -euo pipefail
     export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:?SOPS_AGE_KEY_FILE must be set}"
+    APP_REPO="${APP_REPO:-{{justfile_directory()}}/../sleev-website-app}"
+    APP_VARS=$(mktemp /tmp/app-vars-XXXXXX.yml)
+    trap "rm -f $APP_VARS" EXIT
+    sops --decrypt "$APP_REPO/secrets/enc.app.{{env}}.yaml" > "$APP_VARS"
     ansible-playbook \
-        -i inventories/{{ env }} \
-        {{ target }}/playbooks/rollback.yml \
-        -e env={{ env }} \
-        -e image_tag={{ tag }} \
-        -e ghcr_image={{ image }}
+        -i inventories/{{env}} \
+        {{target}}/playbooks/rollback.yml \
+        -e env={{env}} \
+        -e image_tag={{tag}} \
+        -e ghcr_image={{image}} \
+        --extra-vars "@$APP_VARS"
 
 # ── Backup ───────────────────────────────────────────────────────────────────
 # Backup database to R2.
