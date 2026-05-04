@@ -10,14 +10,23 @@ DEV_HTPASSWD_USER: ENC[AES256_GCM,data:tS6GxjWz,iv:KsLqJhJnmLntENdnGCzzSSV4gfOq5
 DEV_HTPASSWD_PASS: ENC[AES256_GCM,data:AKdVj8U0T21/d19hV6goMPVBPw==,iv:Z7fRjdr9B6mOG7dQ23ULGhTxaQdME4UGpLAawapFHYI=,tag:QJx703aqRkcK3WSt10JVRw==,type:str]
 sops:
     age:
+        - recipient: age1c7hew2seq7yahlh9k4854gvy6auz8prjlaxn24un2f7hxnsn5ursj5a4r4
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBWRUhCREQ3d3BnUkY0Z29S
+            UmR1TjkwcllZM2VuQlJ2cW12dkRnUi9Pb1IwCklwSnV4cmF6eGxFS3d6VTZ0TEIy
+            TXIyczd6QnlSRGh6dU1ramt5Sjg2VjAKLS0tIEQ4YzFiMXN2eXNkUzBYS0dBd0ly
+            NVQ3VmFZeFVpa2QrNis0ZHF4NHFBYmsKnNeZ5A0axL6r4NX2+U+Qz0fKCtnEZ/4i
+            n3YdFg2r4khAfMHWguBkSTLEtInIhGsAV5W0r1nftFcrUybVZOzXRQ==
+            -----END AGE ENCRYPTED FILE-----
         - recipient: age1ssl5a79hh04gkx0mdayamwqamnazks8ygz8449d9pxdecrg7sf3s7ws82r
           enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBJdUQvZURiUkoyVmR1TFk1
-            elFMNkhuaTU3NXNjSy9qT3ozbmhYWEFaUWc0ClVsOXBNYjhIR2VpOGpRVXlsVm1J
-            dk83VzFGOFhzNnk1L0dDUzR0aWVESFEKLS0tIGJlcGo1M25rS0E3KzJwNGxUd0RE
-            YXhodU9sS2U1WnMyakM4NjF1L09oSG8KpoOgE7UFn7iq3xvapPcQ+vkzGyEtpiD6
-            UMIJeKrQwg2HE4UHVACas8F4NCQ69ABNP/ZF7WqNHIQhIBDpz3XQzg==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSAybDdSNmswVHlybmtDeGVK
+            ZGdKRG91eFJqUy9sNmVwVEZuQk4rRDJadmtFClBLOUJ1OE96STNQNGJJKzBQSGtJ
+            NnRTZVFRcUJtYjQxTGJTcmtvemFtT3MKLS0tIC9yRFhOOVdzV21qVTBMczFLOFRC
+            SDMxUDdRTkVQME9OY0NScXoyN3ZJV1kKC8O0x2AL7otuZsAwnCHDTbyf4A0q+ra7
+            98rfEitwTHDzFt4fYYIMfRRvZPe8uocJDl2j9s25MH3rKKqnmFb/sQ==
             -----END AGE ENCRYPTED FILE-----
     lastmodified: "2026-05-04T03:07:36Z"
     mac: ENC[AES256_GCM,data:VxlxcVggeHgSUr7i+OOY7jELT6yE1gSI964KAjhI04pnTUPanpfblXxajKsaOwnxiRKwUW4OKBDcdLZbYAOba4f5h5u3WKoMVIJaWs76ykHlgoyF46YXk4B71Py/caD1zy8XXYFwEBXh2+0M+ySd5i7kkvoX60jECmRJelcug1g=,iv:/d4XAlox4n01VZhuwr/7X/4mPlJWUOeCC0R5jKIvYiU=,tag:/bFcEqPCGcLU3tzYeI//zA==,type:str]

@@ -23,14 +23,23 @@ smtp_user: ENC[AES256_GCM,data:qJPvMEI+39OeLV76OH5/,iv:8SZJdbpUc1xesBUyXda6KMwiF
 smtp_pass: ENC[AES256_GCM,data:UV40x/QWhXQo/zM78RkxzA==,iv:8LSyn/yxtASIXnS4vgFAIJqMUJZyGzMScNR27HrnPwk=,tag:jLvbb/IwjG0IHg5d6nZarA==,type:str]
 sops:
     age:
+        - recipient: age1c7hew2seq7yahlh9k4854gvy6auz8prjlaxn24un2f7hxnsn5ursj5a4r4
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBERWR3MHVrR3pYcVhJYnFB
+            QTN0aXdDQmNlWC9VMTFKUmM5MXFTUVhlWWtNCnV3RmZOUlBMUnc0bk9wSlExNEEv
+            dmxVV3pjR25EV0Ftc3NZQW4yYU5td3MKLS0tIGlmZzVrcXJ2aXFLa2hLbmlTSnN5
+            THFhaG92SmVDT05XM2VVVXlUajFqc00Ka4ppT9sgYPlh/7YBDB6hsKDt9j2dgaKp
+            l7eETZosJ5wUusqCG0rOXEhT8DQvniYsC1rSEEwwZa58cX7E5E3/FQ==
+            -----END AGE ENCRYPTED FILE-----
         - recipient: age1ssl5a79hh04gkx0mdayamwqamnazks8ygz8449d9pxdecrg7sf3s7ws82r
           enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBoVXQwcEpOclhlalpCOTBy
-            OTdCUXE4UllFN2FuNlNFQWJPSE12OHRwU21JCkNMaGJvQU1ST2M4aVhJSFpEbnE1
-            VUk1SVdqSGpwMVRxZGZ5SWxYUFM2VDgKLS0tIC9kNmR3Q1d1akR1emo2NW52UHNz
-            Qm5QaTlwR2twcFRTdXE3MG1CWDQ1czgKCKHx+mqz/eap+IfDopgcDCsN2jlGZhmn
-            /02pJYCqu3lGM/zyP821HLBqMXjLaZklkYwjHpX9YFmQVm9truvEvA==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBJeUNzb1c0SDlrUWlYQnpR
+            WVhrVVVobjF4K21YTGtZRFpXVlp6cVhJUmt3CjhOWFFwb2tDNXZzbUdGTkY5dXRH
+            MmZYZlhkTUdGdk0xay9GQmo0Uzg0YjgKLS0tIFNFRWF0bG5kQjIyOG1WSmJ4M2dn
+            bXlpZG1YVHNYc1UzUXNRZlk0aXpkRGsKH/CDFqS4xkCdSU4tAnNLmBo7d/JThaaJ
+            ymxmBUIslmDGqXI9pgkfvxRBJ8LoCiwn5KMc545LzbFcHm2XIaeuOA==
             -----END AGE ENCRYPTED FILE-----
     lastmodified: "2026-05-04T03:07:33Z"
     mac: ENC[AES256_GCM,data:FVouC2T7mGX7XPCWvgk466GHi2yJqif/aD3geDZu/zVdX6AYe3f/RqGYmRMAuZcRmKFTo8P1w5kpCfXvRvFNlBcTtMWGrDqmyJ+ElU0MsmYFq5ER59DcqafGGwnPs+OlzCdfzz3269ucfzVxexsb5ZdroGd7GvtCB1FklS59yPo=,iv:WfS3/ttrFAieL18+AW/JkiLwapCRyrCmf17JPZeSqRA=,tag:6JyJFYwedVtlFmS+fPHPbQ==,type:str]
