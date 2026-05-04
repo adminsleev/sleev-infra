@@ -33,9 +33,7 @@
       EMAIL_AUTH_PASSWORD={{ email_auth_password }}
       EMAIL_FROM={{ email_from }}
       EMAIL_TO={{ email_to }}
-      NEXT_PUBLIC_BASE_URL={{ next_public_base_url }}
-      NEXT_PUBLIC_GA_ID={{ ga_id }}
-      NEXT_PUBLIC_RECAPTCHA_SITE_KEY={{ recaptcha_site_key }}
+      BASE_URL={{ base_url }}
       RECAPTCHA_SECRET_KEY={{ recaptcha_secret_key }}
   no_log: true
 
