@@ -2,6 +2,15 @@
 server {
     listen 80;
     server_name {{ nginx_dev_domain }};
+    return 301 https://{{ nginx_dev_domain }}$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ nginx_dev_domain }};
+
+    ssl_certificate     /etc/letsencrypt/live/{{ nginx_prod_primary_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ nginx_prod_primary_domain }}/privkey.pem;
 
     gzip on;
     gzip_types text/html application/json text/css application/javascript;
