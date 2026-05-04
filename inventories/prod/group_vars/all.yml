@@ -1,4 +1,8 @@
 ---
+# Dev cluster listens on all interfaces; pg_hba.conf restricts to Tailscale subnet only.
+# Prod cluster stays localhost-only (default in postgresql role).
+pg_dev_listen_addresses: "*"
+
 env: prod
 ghcr_owner: sleev
 app_port: 3000

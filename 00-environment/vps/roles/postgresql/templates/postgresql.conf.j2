@@ -3,7 +3,7 @@
 
 data_directory            = '/var/lib/postgresql/{{ pg_version }}/{{ pg_cluster_name }}'
 
-listen_addresses          = 'localhost'
+listen_addresses          = '{{ pg_listen_addresses }}'
 port                      = {{ pg_cluster_port }}
 max_connections           = {{ pg_max_connections }}
 shared_buffers            = {{ pg_shared_buffers }}

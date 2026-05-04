@@ -57,6 +57,7 @@
     pg_cluster_name: prod
     pg_cluster_port: "{{ pg_prod_port }}"
     pg_shared_buffers: "{{ pg_prod_shared_buffers }}"
+    pg_listen_addresses: "{{ pg_prod_listen_addresses }}"
   notify: Restart postgresql prod
 
 - name: Deploy postgresql.conf for dev cluster
@@ -70,6 +71,7 @@
     pg_cluster_name: dev
     pg_cluster_port: "{{ pg_dev_port }}"
     pg_shared_buffers: "{{ pg_dev_shared_buffers }}"
+    pg_listen_addresses: "{{ pg_dev_listen_addresses }}"
   notify: Restart postgresql dev
 
 - name: Deploy pg_hba.conf for prod cluster
@@ -79,6 +81,8 @@
     owner: postgres
     group: postgres
     mode: "0640"
+  vars:
+    pg_tailscale_access: false
   notify: Restart postgresql prod
 
 - name: Deploy pg_hba.conf for dev cluster
@@ -88,6 +92,8 @@
     owner: postgres
     group: postgres
     mode: "0640"
+  vars:
+    pg_tailscale_access: true
   notify: Restart postgresql dev
 
 - name: Enable and start prod cluster
