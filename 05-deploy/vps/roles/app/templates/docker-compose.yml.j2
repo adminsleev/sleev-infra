@@ -5,15 +5,8 @@ services:
     image: "{{ ghcr_image }}:{{ image_tag }}"
     container_name: "app_{{ env }}"
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ app_port }}:3000"
+    network_mode: host
+    environment:
+      - PORT={{ app_port }}
     env_file:
       - .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - app_network_{{ env }}
-
-networks:
-  app_network_{{ env }}:
-    driver: bridge
