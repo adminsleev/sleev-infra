@@ -54,7 +54,8 @@
   community.docker.docker_container:
     name: "app_migrate_{{ env }}"
     image: "{{ ghcr_image }}:{{ image_tag }}"
-    command: node migrate.mjs
+    command: node migrate/migrate.mjs
+    working_dir: /app
     network_mode: host
     detach: false
     cleanup: true
