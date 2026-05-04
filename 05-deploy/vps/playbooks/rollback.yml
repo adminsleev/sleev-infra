@@ -13,10 +13,10 @@
 
 - name: "Rollback sleev app — {{ env | default('') | upper }}"
   hosts: all
-  remote_user: deploy
   become: false
   gather_facts: false
   vars:
+    ansible_user: deploy
     ansible_ssh_private_key_file: "~/.ssh/sleev_github_to_vps_deploy"
 
   pre_tasks:
