@@ -69,10 +69,8 @@
 - name: "6/11 | Assert migrations succeeded"
   ansible.builtin.assert:
     that:
-      - migration_result.container.State.ExitCode == 0
-    fail_msg: >-
-      Database migrations failed (exit {{ migration_result.container.State.ExitCode }}).
-      Deploy aborted — app container has not been restarted.
+      - migration_result.failed == false
+    fail_msg: "Database migrations failed. Deploy aborted — app container has not been restarted."
 
 # Step 7: Start (or recreate) the container
 - name: "7/11 | Start container with docker compose up"
