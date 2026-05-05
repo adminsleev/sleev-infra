@@ -1,7 +1,7 @@
 ---
-# Dev cluster listens on all interfaces; pg_hba.conf restricts to Tailscale subnet only.
-# Prod cluster stays localhost-only (default in postgresql role).
+# Both clusters listen on all interfaces; pg_hba.conf restricts to Tailscale subnet only.
 pg_dev_listen_addresses: "*"
+pg_prod_listen_addresses: "*"
 
 env: prod
 ghcr_owner: sleev

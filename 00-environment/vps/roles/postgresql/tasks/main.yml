@@ -82,7 +82,7 @@
     group: postgres
     mode: "0640"
   vars:
-    pg_tailscale_access: false
+    pg_tailscale_access: true
   notify: Restart postgresql prod
 
 - name: Deploy pg_hba.conf for dev cluster
