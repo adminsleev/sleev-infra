@@ -26,6 +26,14 @@
     state: absent
     purge: true
 
+- name: Kill any processes still holding apt locks
+  ansible.builtin.shell: |
+    for lock in /var/lib/apt/lists/lock /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock; do
+      fuser -k "$lock" 2>/dev/null || true
+    done
+    sleep 2
+  changed_when: false
+
 - name: Update apt cache and upgrade packages
   ansible.builtin.apt:
     update_cache: true
