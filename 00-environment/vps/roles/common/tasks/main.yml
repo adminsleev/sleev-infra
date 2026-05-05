@@ -34,10 +34,9 @@
     sleep 2
   changed_when: false
 
-- name: Update apt cache and upgrade packages
+- name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
-    upgrade: safe
     cache_valid_time: 3600
 
 - name: Install base packages
