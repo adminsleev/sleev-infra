@@ -9,6 +9,23 @@
       deploy_ssh_public_key looks like a placeholder. Pass the real public key
       via extra-vars (just bootstrap/provision reads it from ~/.ssh/sleev_github_to_vps_deploy.pub).
 
+- name: Stop unattended-upgrades services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - unattended-upgrades
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+  failed_when: false
+
+- name: Remove unattended-upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: absent
+    purge: true
+
 - name: Update apt cache and upgrade packages
   ansible.builtin.apt:
     update_cache: true
